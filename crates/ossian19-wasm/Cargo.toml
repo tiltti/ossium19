@@ -1,0 +1,27 @@
+[package]
+name = "ossian19-wasm"
+version.workspace = true
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+ossian19-core = { path = "../ossian19-core" }
+wasm-bindgen.workspace = true
+js-sys.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde-wasm-bindgen = "0.6"
+
+[dependencies.web-sys]
+workspace = true
+features = ["console"]
+
+[features]
+default = ["console_error_panic_hook"]
+console_error_panic_hook = ["dep:console_error_panic_hook"]
+
+[dependencies.console_error_panic_hook]
+version = "0.1.7"
+optional = true

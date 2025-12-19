@@ -1,0 +1,24 @@
+# Rust
+/target/
+Cargo.lock
+
+# WASM build output
+/web/src/wasm/
+
+# Node
+/web/node_modules/
+/web/dist/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+*.log
+
+# AI assistant config files - do not commit
+*.ai-config.md
+.ai-assistant/

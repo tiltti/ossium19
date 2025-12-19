@@ -1,0 +1,13 @@
+[package]
+name = "ossian19-core"
+version.workspace = true
+edition = "2021"
+
+[dependencies]
+serde.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+
+[features]
+default = []
