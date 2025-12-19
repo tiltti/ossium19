@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  base: process.env.GITHUB_ACTIONS ? '/ossium19/' : '/',
   server: {
     port: 5179,
     strictPort: true,
@@ -13,7 +14,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    exclude: ['syna-wasm'],
+    exclude: ['ossian19-wasm'],
   },
   build: {
     target: 'esnext',
