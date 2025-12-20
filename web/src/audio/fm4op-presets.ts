@@ -1,15 +1,10 @@
 // 4-Operator FM Synthesis Presets
 // Based on classic DX7 sounds and FM synthesis techniques
 
-import { Fm4OpParams } from './fm4op-engine';
-import { EffectParams, defaultEffectParams } from './effects';
-
-export interface Fm4OpPreset {
-  name: string;
-  category: string;
-  params: Fm4OpParams;
-  effects: EffectParams;
-}
+import { defaultEffectParams } from './effects';
+import { Fm4OpPreset } from './fm4op-types';
+// Re-export the shared type for backward compatibility
+export type { Fm4OpPreset } from './fm4op-types';
 
 export const fm4opPresets: Fm4OpPreset[] = [
   // === INIT ===
@@ -427,21 +422,31 @@ export const fm4opPresets: Fm4OpPreset[] = [
   },
 ];
 
+// Import DX7 factory presets
+import { dx7FactoryPresets } from './dx7-factory-presets';
+
+// Combine all presets
+export const allFm4OpPresets: Fm4OpPreset[] = [...fm4opPresets, ...dx7FactoryPresets];
+
 // Get FM4Op presets by category
 export function getFm4OpPresetsByCategory(): Map<string, Fm4OpPreset[]> {
   const categories = new Map<string, Fm4OpPreset[]>();
 
-  for (const preset of fm4opPresets) {
-    if (!categories.has(preset.category)) {
-      categories.set(preset.category, []);
+  for (const preset of allFm4OpPresets) {
+    // Mark DX7 presets with special category prefix
+    const category = dx7FactoryPresets.includes(preset)
+      ? `DX7 ${preset.category}`
+      : preset.category;
+    if (!categories.has(category)) {
+      categories.set(category, []);
     }
-    categories.get(preset.category)!.push(preset);
+    categories.get(category)!.push(preset);
   }
 
   return categories;
 }
 
-// Get preset by name
+// Get preset by name (searches all presets including DX7)
 export function getFm4OpPresetByName(name: string): Fm4OpPreset | undefined {
-  return fm4opPresets.find((p) => p.name === name);
+  return allFm4OpPresets.find((p) => p.name === name);
 }

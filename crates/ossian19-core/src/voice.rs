@@ -97,12 +97,18 @@ impl Voice {
 
     /// Start a note
     pub fn note_on(&mut self, note: u8, velocity: f32) {
+        self.note_on_with_bend(note, velocity, 1.0);
+    }
+
+    /// Start a note with pitch bend applied
+    pub fn note_on_with_bend(&mut self, note: u8, velocity: f32, bend_multiplier: f32) {
         self.note = note;
         self.velocity = velocity;
         self.active = true;
 
-        // Convert MIDI note to frequency
-        let freq = midi_to_freq(note);
+        // Convert MIDI note to frequency with pitch bend
+        let base_freq = midi_to_freq(note);
+        let freq = base_freq * bend_multiplier;
         self.osc1.set_frequency(freq);
         // Osc2 frequency depends on FM mode
         // In FM mode, fm_ratio controls modulator:carrier ratio
@@ -225,6 +231,10 @@ pub fn freq_to_midi(freq: f32) -> u8 {
 pub struct VoiceManager {
     voices: Vec<Voice>,
     sample_rate: f32,
+    /// Pitch bend in semitones (-range to +range)
+    pitch_bend: f32,
+    /// Pitch bend range in semitones (default: 2)
+    pitch_bend_range: f32,
 }
 
 impl VoiceManager {
@@ -233,6 +243,8 @@ impl VoiceManager {
         Self {
             voices,
             sample_rate,
+            pitch_bend: 0.0,
+            pitch_bend_range: 2.0, // ±2 semitones default
         }
     }
 
@@ -259,15 +271,17 @@ impl VoiceManager {
 
     /// Start a new note
     pub fn note_on(&mut self, note: u8, velocity: f32) {
+        let bend_mult = self.pitch_bend_multiplier();
+
         // Check if this note is already playing, if so, retrigger
         if let Some(voice) = self.voices.iter_mut().find(|v| v.active && v.note == note) {
-            voice.note_on(note, velocity);
+            voice.note_on_with_bend(note, velocity, bend_mult);
             return;
         }
 
         // Allocate a new voice
         if let Some(voice) = self.allocate_voice() {
-            voice.note_on(note, velocity);
+            voice.note_on_with_bend(note, velocity, bend_mult);
         }
     }
 
@@ -390,6 +404,86 @@ impl VoiceManager {
                 voice.osc2.set_frequency(freq * ratio);
             }
         }
+    }
+
+    // === Juno-6 style PWM ===
+
+    /// Set pulse width for all voices (0.01 - 0.99)
+    pub fn set_pulse_width(&mut self, width: f32) {
+        let clamped = width.clamp(0.01, 0.99);
+        for voice in &mut self.voices {
+            voice.osc1.set_pulse_width(clamped);
+            voice.osc2.set_pulse_width(clamped);
+        }
+    }
+
+    /// Set PWM LFO modulation depth (0.0 - 1.0)
+    pub fn set_pwm_depth(&mut self, _depth: f32) {
+        // TODO: Implement PWM LFO modulation in Voice tick()
+        // For now, this is a placeholder - actual PWM modulation
+        // would require an LFO per voice or global LFO
+    }
+
+    /// Set PWM LFO rate in Hz
+    pub fn set_pwm_rate(&mut self, _rate: f32) {
+        // TODO: Implement PWM LFO rate
+    }
+
+    // === Juno-6 style Sub oscillator ===
+
+    /// Set sub oscillator waveform
+    pub fn set_sub_waveform(&mut self, waveform: crate::oscillator::SubWaveform) {
+        for voice in &mut self.voices {
+            voice.sub_osc.waveform = match waveform {
+                crate::oscillator::SubWaveform::Sine => crate::oscillator::Waveform::Sine,
+                crate::oscillator::SubWaveform::Square => crate::oscillator::Waveform::Square,
+            };
+        }
+    }
+
+    /// Set sub oscillator octave (-1 or -2)
+    pub fn set_sub_octave(&mut self, octave: i8) {
+        let _clamped = octave.clamp(-2, -1);
+        // TODO: Store octave setting and apply in note_on/update_voice_frequencies
+        // For now, sub oscillator is always -1 octave (0.5 frequency multiplier)
+    }
+
+    // === Juno-6 style HPF ===
+
+    /// Set high-pass filter cutoff (20-2000 Hz, non-resonant)
+    pub fn set_hpf_cutoff(&mut self, _cutoff: f32) {
+        // TODO: Implement HPF in voice signal chain before LPF
+        // Would require adding an HPF filter to Voice struct
+    }
+
+    /// Set pitch bend value (-1 to 1, where 1 = +pitch_bend_range semitones)
+    pub fn set_pitch_bend(&mut self, value: f32) {
+        self.pitch_bend = value.clamp(-1.0, 1.0) * self.pitch_bend_range;
+        self.update_voice_frequencies();
+    }
+
+    /// Set pitch bend range in semitones (typically 2, 12, or 24)
+    pub fn set_pitch_bend_range(&mut self, semitones: f32) {
+        self.pitch_bend_range = semitones.clamp(0.0, 48.0);
+    }
+
+    /// Update frequencies for all active voices (called when pitch bend changes)
+    fn update_voice_frequencies(&mut self) {
+        let bend_multiplier = (2.0_f32).powf(self.pitch_bend / 12.0);
+        for voice in &mut self.voices {
+            if voice.active {
+                let base_freq = midi_to_freq(voice.note);
+                let bent_freq = base_freq * bend_multiplier;
+                voice.osc1.set_frequency(bent_freq);
+                voice.osc2.set_frequency(bent_freq * voice.fm_ratio);
+                voice.sub_osc.set_frequency(bent_freq * 0.5);
+            }
+        }
+    }
+
+    /// Get current pitch bend multiplier (for use during note_on)
+    fn pitch_bend_multiplier(&self) -> f32 {
+        (2.0_f32).powf(self.pitch_bend / 12.0)
     }
 
     /// Get mutable access to voices for processing

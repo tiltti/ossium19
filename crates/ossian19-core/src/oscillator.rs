@@ -18,6 +18,19 @@ impl Default for Waveform {
     }
 }
 
+/// Sub oscillator waveform (Juno-6 style)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SubWaveform {
+    Sine,
+    Square,
+}
+
+impl Default for SubWaveform {
+    fn default() -> Self {
+        Self::Square // Juno-6 default
+    }
+}
+
 /// Band-limited oscillator using PolyBLEP for anti-aliasing
 #[derive(Debug, Clone)]
 pub struct Oscillator {
@@ -25,6 +38,7 @@ pub struct Oscillator {
     pub frequency: f32,
     pub detune: f32, // cents
     pub phase: f32,
+    pub pulse_width: f32, // 0.0 to 1.0, default 0.5 for square
     sample_rate: f32,
     phase_increment: f32,
 }
@@ -36,11 +50,16 @@ impl Oscillator {
             frequency: 440.0,
             detune: 0.0,
             phase: 0.0,
+            pulse_width: 0.5, // Default to square
             sample_rate,
             phase_increment: 0.0,
         };
         osc.update_phase_increment();
         osc
+    }
+
+    pub fn set_pulse_width(&mut self, width: f32) {
+        self.pulse_width = width.clamp(0.01, 0.99);
     }
 
     pub fn set_frequency(&mut self, freq: f32) {
@@ -87,9 +106,11 @@ impl Oscillator {
                 s
             }
             Waveform::Square => {
-                let mut s = if modulated_phase < 0.5 { 1.0 } else { -1.0 };
+                // PWM: use pulse_width instead of fixed 0.5
+                let pw = self.pulse_width;
+                let mut s = if modulated_phase < pw { 1.0 } else { -1.0 };
                 s += self.poly_blep_at(modulated_phase);
-                s -= self.poly_blep_at((modulated_phase + 0.5) % 1.0);
+                s -= self.poly_blep_at((modulated_phase + (1.0 - pw)) % 1.0);
                 s
             }
             Waveform::Triangle => {

@@ -17,6 +17,8 @@ interface Fm4OpState {
   effectParams: EffectParams;
   activeNotes: Set<number>;
   currentPreset: string | null;
+  pitchBend: number; // -1 to 1
+  modWheel: number;  // 0 to 1
 
   // Actions
   init: () => Promise<void>;
@@ -25,6 +27,10 @@ interface Fm4OpState {
   noteOff: (note: number) => void;
   panic: () => void;
   resetParams: () => void;
+
+  // Pitch/mod wheel
+  setPitchBend: (value: number) => void;
+  setModWheel: (value: number) => void;
 
   // Algorithm
   setAlgorithm: (algo: number) => void;
@@ -72,6 +78,8 @@ export const useFm4OpStore = create<Fm4OpState>((set, get) => ({
   effectParams: { ...defaultEffectParams },
   activeNotes: new Set(),
   currentPreset: null,
+  pitchBend: 0,
+  modWheel: 0,
 
   init: async () => {
     await fm4opEngine.init();
@@ -115,7 +123,18 @@ export const useFm4OpStore = create<Fm4OpState>((set, get) => ({
     const effectParams = { ...defaultEffectParams };
     fm4opEngine.loadParams(params);
     fm4opEngine.setEffectParams(effectParams);
-    set({ params, effectParams, currentPreset: null });
+    fm4opEngine.setPitchBend(0);
+    set({ params, effectParams, currentPreset: null, pitchBend: 0, modWheel: 0 });
+  },
+
+  setPitchBend: (value) => {
+    fm4opEngine.setPitchBend(value);
+    set({ pitchBend: value });
+  },
+
+  setModWheel: (value) => {
+    fm4opEngine.setModWheel(value);
+    set({ modWheel: value });
   },
 
   // Algorithm
@@ -281,10 +300,15 @@ export const useFm4OpStore = create<Fm4OpState>((set, get) => ({
 
   // Preset loading
   loadPreset: (preset: Fm4OpPreset) => {
-    fm4opEngine.loadParams(preset.params);
+    // Deep copy operators to avoid reference issues
+    const paramsCopy = {
+      ...preset.params,
+      operators: preset.params.operators.map(op => ({ ...op })) as typeof preset.params.operators,
+    };
+    fm4opEngine.loadParams(paramsCopy);
     fm4opEngine.setEffectParams(preset.effects);
     set({
-      params: { ...preset.params },
+      params: paramsCopy,
       effectParams: { ...preset.effects },
       currentPreset: preset.name,
     });

@@ -14,13 +14,22 @@ A hybrid software synthesizer combining classic subtractive synthesis with 4-ope
 
 - **Full ADSR Envelopes** for amplitude and filter (subtractive) or per-operator (FM)
 
+- **Performance Controls**
+  - Interactive on-screen keyboard with mouse painting support
+  - Pitch bend wheel (spring-return, ±12 semitones)
+  - Mod wheel with destination indicator (Filter for subtractive, Vibrato for FM)
+
 - **Built-in Effects**: Reverb, Delay, Chorus
 
 - **Preset System** with categorized sounds for both engines
 
 - **Demo Player** with 8 built-in sequences to showcase different sounds
 
-- **LCD-style Displays** showing waveforms, envelopes, spectrum, and real-time audio levels
+- **Hardware Synth Aesthetic**
+  - LCD-style displays showing waveforms, envelopes, spectrum, and real-time audio levels
+  - Interactive envelope graphs with draggable points
+  - Signal flow visualization
+  - Wood side panels for classic synthesizer look
 
 ## Architecture
 
@@ -63,6 +72,15 @@ cd web && npm run build:wasm
 # Start dev server
 npm run dev
 ```
+
+## Controls
+
+- **Keyboard**: Click and drag on keys to play notes (mouse painting supported)
+- **Pitch Wheel**: Drag up/down to bend pitch (auto-returns to center)
+- **Mod Wheel**: Drag up/down to apply modulation
+  - Subtractive: Opens filter cutoff
+  - FM: Controls vibrato depth (planned)
+- **MIDI**: External MIDI keyboards supported via Web MIDI API
 
 ## Trivia
 

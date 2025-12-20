@@ -9,6 +9,9 @@ interface SynthState {
   effectParams: EffectParams;
   activeNotes: Set<number>;
   currentPreset: string | null;
+  // Performance controls (not saved in presets)
+  pitchBend: number; // -1 to 1
+  modWheel: number;  // 0 to 1
 
   // Actions
   init: () => Promise<void>;
@@ -17,6 +20,9 @@ interface SynthState {
   noteOff: (note: number) => void;
   panic: () => void;
   resetParams: () => void;
+  // Performance control actions
+  setPitchBend: (value: number) => void;
+  setModWheel: (value: number) => void;
 
   // Preset actions
   loadPreset: (preset: Preset) => void;
@@ -52,6 +58,8 @@ interface SynthState {
 
   // Audio analysis
   getAnalyser: () => AnalyserNode | null;
+  getAudioContext: () => AudioContext | null;
+  getEffectsOutput: () => AudioNode | null;
 }
 
 export const useSynthStore = create<SynthState>((set) => ({
@@ -61,6 +69,8 @@ export const useSynthStore = create<SynthState>((set) => ({
   effectParams: { ...defaultEffectParams },
   activeNotes: new Set(),
   currentPreset: null,
+  pitchBend: 0,
+  modWheel: 0,
 
   init: async () => {
     await audioEngine.init();
@@ -126,7 +136,26 @@ export const useSynthStore = create<SynthState>((set) => ({
     audioEngine.setParam('filterRelease', params.filterRelease);
     audioEngine.setParam('masterVolume', params.masterVolume);
     audioEngine.setEffectParams(effectParams);
-    set({ params, effectParams, currentPreset: null });
+    audioEngine.setPitchBend(0);
+    set({ params, effectParams, currentPreset: null, pitchBend: 0, modWheel: 0 });
+  },
+
+  setPitchBend: (value) => {
+    audioEngine.setPitchBend(value);
+    set({ pitchBend: value });
+  },
+
+  setModWheel: (value) => {
+    // Mod wheel adds modulation to filter cutoff
+    // Uses the base cutoff from params and adds modulation on top
+    set((state) => {
+      const baseCutoff = state.params.filterCutoff;
+      // Mod wheel opens filter - adds 0% to 200% of base cutoff
+      const modulation = baseCutoff * value * 2;
+      const effectiveCutoff = Math.min(20000, baseCutoff + modulation);
+      audioEngine.setParam('filterCutoff', effectiveCutoff);
+      return { modWheel: value };
+    });
   },
 
   // Preset methods
@@ -211,8 +240,13 @@ export const useSynthStore = create<SynthState>((set) => ({
   },
 
   setFilterCutoff: (cutoff) => {
-    audioEngine.setParam('filterCutoff', cutoff);
-    set((state) => ({ params: { ...state.params, filterCutoff: cutoff } }));
+    // Apply cutoff with mod wheel modulation
+    set((state) => {
+      const modulation = cutoff * state.modWheel * 2;
+      const effectiveCutoff = Math.min(20000, cutoff + modulation);
+      audioEngine.setParam('filterCutoff', effectiveCutoff);
+      return { params: { ...state.params, filterCutoff: cutoff } };
+    });
   },
 
   setFilterResonance: (resonance) => {
@@ -304,4 +338,6 @@ export const useSynthStore = create<SynthState>((set) => ({
   },
 
   getAnalyser: () => audioEngine.getAnalyserNode(),
+  getAudioContext: () => audioEngine.getAudioContext(),
+  getEffectsOutput: () => audioEngine.getEffectsOutput(),
 }));

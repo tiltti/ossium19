@@ -13,10 +13,10 @@ interface LcdScreenProps {
 }
 
 const LCD_COLORS: Record<LcdColor, { fg: string; bg: string; glow: string }> = {
-  green: { fg: '#33ff66', bg: '#0a1a0d', glow: '#33ff66' },
-  amber: { fg: '#ffaa00', bg: '#1a140a', glow: '#ffaa00' },
-  blue: { fg: '#44aaff', bg: '#0a1420', glow: '#44aaff' },
-  white: { fg: '#ffffff', bg: '#0a0a0a', glow: '#ffffff' },
+  green: { fg: '#33ff66', bg: '#051208', glow: '#33ff66' },
+  amber: { fg: '#ffaa00', bg: '#140d02', glow: '#ffaa00' },
+  blue: { fg: '#44aaff', bg: '#020a14', glow: '#44aaff' },
+  white: { fg: '#ffffff', bg: '#080808', glow: '#ffffff' },
 };
 
 export function LcdScreen({
@@ -35,15 +35,15 @@ export function LcdScreen({
         width,
         height,
         background: colors.bg,
-        borderRadius: 4,
+        borderRadius: 3,
         position: 'relative',
         overflow: 'hidden',
-        boxShadow: `inset 0 0 10px rgba(0,0,0,0.8), 0 0 8px ${colors.glow}22`,
-        border: '2px solid #333',
+        boxShadow: `inset 0 0 8px rgba(0,0,0,0.9), 0 0 4px ${colors.glow}15`,
+        border: '1px solid #222',
         ...style,
       }}
     >
-      {/* Scanlines overlay */}
+      {/* Sharper scanlines */}
       <div
         style={{
           position: 'absolute',
@@ -54,15 +54,15 @@ export function LcdScreen({
           background: `repeating-linear-gradient(
             0deg,
             transparent,
-            transparent ${pixelSize - 1}px,
-            rgba(0,0,0,0.3) ${pixelSize - 1}px,
-            rgba(0,0,0,0.3) ${pixelSize}px
+            transparent ${pixelSize - 0.5}px,
+            rgba(0,0,0,0.4) ${pixelSize - 0.5}px,
+            rgba(0,0,0,0.4) ${pixelSize}px
           )`,
           pointerEvents: 'none',
           zIndex: 2,
         }}
       />
-      {/* Vertical pixel lines */}
+      {/* Sharper vertical lines */}
       <div
         style={{
           position: 'absolute',
@@ -73,9 +73,9 @@ export function LcdScreen({
           background: `repeating-linear-gradient(
             90deg,
             transparent,
-            transparent ${pixelSize - 1}px,
-            rgba(0,0,0,0.2) ${pixelSize - 1}px,
-            rgba(0,0,0,0.2) ${pixelSize}px
+            transparent ${pixelSize - 0.5}px,
+            rgba(0,0,0,0.25) ${pixelSize - 0.5}px,
+            rgba(0,0,0,0.25) ${pixelSize}px
           )`,
           pointerEvents: 'none',
           zIndex: 2,
@@ -85,7 +85,7 @@ export function LcdScreen({
       <div style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%' }}>
         {children}
       </div>
-      {/* Slight curved glass effect */}
+      {/* Subtle highlight */}
       <div
         style={{
           position: 'absolute',
@@ -93,7 +93,7 @@ export function LcdScreen({
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'radial-gradient(ellipse at 30% 30%, rgba(255,255,255,0.05) 0%, transparent 50%)',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.02) 0%, transparent 30%)',
           pointerEvents: 'none',
           zIndex: 3,
         }}
@@ -102,7 +102,7 @@ export function LcdScreen({
   );
 }
 
-// Canvas-based LCD for drawing graphics
+// Canvas-based LCD
 interface LcdCanvasProps {
   width: number;
   height: number;
@@ -130,11 +130,8 @@ export function LcdCanvas({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Clear with background
     ctx.fillStyle = colors.bg;
     ctx.fillRect(0, 0, width, height);
-
-    // Call the draw function
     draw(ctx, width, height, { fg: colors.fg, bg: colors.bg });
   }, [width, height, colors, draw]);
 
@@ -150,7 +147,7 @@ export function LcdCanvas({
   );
 }
 
-// Envelope display component
+// Envelope display
 interface EnvelopeDisplayProps {
   attack: number;
   decay: number;
@@ -176,25 +173,23 @@ export function EnvelopeDisplay({
 
   const draw = useMemo(() => {
     return (ctx: CanvasRenderingContext2D, w: number, h: number) => {
-      const padding = 8;
+      const padding = 6;
       const drawW = w - padding * 2;
-      const drawH = h - padding * 2 - (label ? 12 : 0);
-      const drawY = padding + (label ? 12 : 0);
+      const drawH = h - padding * 2 - (label ? 10 : 0);
+      const drawY = padding + (label ? 10 : 0);
 
-      // Normalize times for display (max display time ~3s)
       const maxTime = 3;
       const totalTime = Math.min(attack, maxTime) + Math.min(decay, maxTime) + 0.5 + Math.min(release, maxTime);
       const scale = drawW / totalTime;
 
       const attackW = Math.min(attack, maxTime) * scale;
       const decayW = Math.min(decay, maxTime) * scale;
-      const sustainW = 0.5 * scale; // Fixed sustain display width
+      const sustainW = 0.5 * scale;
       const releaseW = Math.min(release, maxTime) * scale;
 
-      // Draw grid lines (pixelated)
-      ctx.strokeStyle = colors.fg + '33';
+      // Grid lines - sharper
+      ctx.strokeStyle = colors.fg + '22';
       ctx.lineWidth = 1;
-      ctx.setLineDash([2, 4]);
       for (let i = 0; i <= 4; i++) {
         const y = drawY + (drawH * i) / 4;
         ctx.beginPath();
@@ -202,58 +197,47 @@ export function EnvelopeDisplay({
         ctx.lineTo(w - padding, Math.floor(y) + 0.5);
         ctx.stroke();
       }
-      ctx.setLineDash([]);
 
-      // Draw envelope curve
+      // Envelope curve - sharper, less glow
       ctx.strokeStyle = colors.fg;
       ctx.lineWidth = 2;
       ctx.shadowColor = colors.fg;
-      ctx.shadowBlur = 4;
+      ctx.shadowBlur = 2;
       ctx.beginPath();
 
       let x = padding;
       const bottom = drawY + drawH;
       const top = drawY;
 
-      // Start at bottom
       ctx.moveTo(x, bottom);
-
-      // Attack - rise to top
       x += attackW;
       ctx.lineTo(Math.floor(x), top);
-
-      // Decay - fall to sustain level
       x += decayW;
       const sustainY = top + drawH * (1 - sustain);
       ctx.lineTo(Math.floor(x), Math.floor(sustainY));
-
-      // Sustain hold
       x += sustainW;
       ctx.lineTo(Math.floor(x), Math.floor(sustainY));
-
-      // Release - fall to bottom
       x += releaseW;
       ctx.lineTo(Math.floor(x), bottom);
 
       ctx.stroke();
       ctx.shadowBlur = 0;
 
-      // Draw label
       if (label) {
         ctx.fillStyle = colors.fg;
-        ctx.font = '9px monospace';
+        ctx.font = '8px monospace';
         ctx.textAlign = 'center';
-        ctx.fillText(label, w / 2, 10);
+        ctx.fillText(label, w / 2, 9);
       }
 
-      // Draw phase labels
-      ctx.fillStyle = colors.fg + '88';
-      ctx.font = '7px monospace';
+      // Phase labels
+      ctx.fillStyle = colors.fg + '66';
+      ctx.font = '6px monospace';
       ctx.textAlign = 'center';
       const phases = ['A', 'D', 'S', 'R'];
       let labelX = padding;
       [attackW, decayW, sustainW, releaseW].forEach((phaseW, i) => {
-        ctx.fillText(phases[i], labelX + phaseW / 2, bottom + 9);
+        ctx.fillText(phases[i], labelX + phaseW / 2, bottom + 7);
         labelX += phaseW;
       });
     };
@@ -262,7 +246,7 @@ export function EnvelopeDisplay({
   return <LcdCanvas width={width} height={height} color={color} draw={draw} />;
 }
 
-// Waveform display (oscilloscope style)
+// Waveform display
 interface WaveformDisplayProps {
   analyser: AnalyserNode | null;
   width?: number;
@@ -294,25 +278,22 @@ export function WaveformDisplay({
         analyser.getByteTimeDomainData(dataArray);
       }
 
-      // Clear
       ctx.fillStyle = colors.bg;
       ctx.fillRect(0, 0, width, height);
 
-      // Draw center line
-      ctx.strokeStyle = colors.fg + '33';
+      // Center line
+      ctx.strokeStyle = colors.fg + '22';
       ctx.lineWidth = 1;
-      ctx.setLineDash([2, 4]);
       ctx.beginPath();
       ctx.moveTo(0, height / 2);
       ctx.lineTo(width, height / 2);
       ctx.stroke();
-      ctx.setLineDash([]);
 
-      // Draw waveform
+      // Waveform - sharper
       ctx.strokeStyle = colors.fg;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 1.5;
       ctx.shadowColor = colors.fg;
-      ctx.shadowBlur = 4;
+      ctx.shadowBlur = 2;
       ctx.beginPath();
 
       const sliceWidth = width / dataArray.length;
@@ -321,7 +302,6 @@ export function WaveformDisplay({
       for (let i = 0; i < dataArray.length; i++) {
         const v = dataArray[i] / 128.0;
         const y = (v * height) / 2;
-
         if (i === 0) {
           ctx.moveTo(x, y);
         } else {
@@ -357,7 +337,7 @@ export function WaveformDisplay({
   );
 }
 
-// Spectrum analyzer display
+// Spectrum analyzer
 interface SpectrumDisplayProps {
   analyser: AnalyserNode | null;
   width?: number;
@@ -393,16 +373,13 @@ export function SpectrumDisplay({
         analyser.getByteFrequencyData(dataArray);
       }
 
-      // Clear
       ctx.fillStyle = colors.bg;
       ctx.fillRect(0, 0, width, height);
 
       const barWidth = Math.floor((width - 4) / barCount) - 1;
       const padding = 2;
 
-      // Group frequency bins into bars (logarithmic-ish distribution)
       for (let i = 0; i < barCount; i++) {
-        // Map bar index to frequency bins (more bins for higher frequencies)
         const startBin = Math.floor((i / barCount) ** 1.5 * bufferLength);
         const endBin = Math.floor(((i + 1) / barCount) ** 1.5 * bufferLength);
 
@@ -414,34 +391,29 @@ export function SpectrumDisplay({
         }
         const value = count > 0 ? sum / count / 255 : 0;
 
-        // Update peak with decay
         if (value > peaksRef.current[i]) {
           peaksRef.current[i] = value;
         } else {
-          peaksRef.current[i] *= 0.95; // Decay
+          peaksRef.current[i] *= 0.95;
         }
 
-        const barHeight = Math.floor(value * (height - 8));
-        const peakY = Math.floor((1 - peaksRef.current[i]) * (height - 8)) + 4;
+        const barHeight = Math.floor(value * (height - 6));
+        const peakY = Math.floor((1 - peaksRef.current[i]) * (height - 6)) + 3;
         const x = padding + i * (barWidth + 1);
 
-        // Draw bar with pixelated segments
-        const segmentHeight = 4;
+        const segmentHeight = 3;
         const segments = Math.floor(barHeight / segmentHeight);
 
         for (let s = 0; s < segments; s++) {
-          const segY = height - 4 - (s + 1) * segmentHeight;
-          const intensity = 1 - s / (segments + 5);
+          const segY = height - 3 - (s + 1) * segmentHeight;
+          const intensity = 1 - s / (segments + 4);
           ctx.fillStyle = colors.fg + Math.floor(intensity * 255).toString(16).padStart(2, '0');
           ctx.fillRect(x, segY, barWidth, segmentHeight - 1);
         }
 
-        // Draw peak indicator
+        // Peak indicator - sharper
         ctx.fillStyle = colors.fg;
-        ctx.shadowColor = colors.fg;
-        ctx.shadowBlur = 2;
-        ctx.fillRect(x, peakY, barWidth, 2);
-        ctx.shadowBlur = 0;
+        ctx.fillRect(x, peakY, barWidth, 1);
       }
 
       animationRef.current = requestAnimationFrame(animate);
@@ -468,7 +440,7 @@ export function SpectrumDisplay({
   );
 }
 
-// Algorithm display for FM synth
+// Algorithm display for FM - shows actual routing structure
 interface AlgorithmDisplayProps {
   algorithm: number;
   activeOps?: number[];
@@ -476,6 +448,65 @@ interface AlgorithmDisplayProps {
   height?: number;
   color?: LcdColor;
 }
+
+// Algorithm layouts define operator positions and connections
+// Each algorithm has different modulator/carrier routing
+type AlgorithmLayout = {
+  positions: Record<number, { x: number; y: number }>;
+  connections: Array<[number, number | null]>; // [from, to] where null = output
+  carriers: number[];
+};
+
+const ALGORITHM_LAYOUTS: Record<number, AlgorithmLayout> = {
+  // Algorithm 1: Serial stack 4→3→2→1→OUT
+  0: {
+    positions: { 4: { x: 20, y: 30 }, 3: { x: 50, y: 30 }, 2: { x: 80, y: 30 }, 1: { x: 110, y: 30 } },
+    connections: [[4, 3], [3, 2], [2, 1], [1, null]],
+    carriers: [1],
+  },
+  // Algorithm 2: Y-merge 4→2←3, 2→1→OUT
+  1: {
+    positions: { 4: { x: 35, y: 15 }, 3: { x: 35, y: 45 }, 2: { x: 70, y: 30 }, 1: { x: 105, y: 30 } },
+    connections: [[4, 2], [3, 2], [2, 1], [1, null]],
+    carriers: [1],
+  },
+  // Algorithm 3: Parallel 4→3→OUT, 2→1→OUT
+  2: {
+    positions: { 4: { x: 30, y: 15 }, 3: { x: 70, y: 15 }, 2: { x: 30, y: 45 }, 1: { x: 70, y: 45 } },
+    connections: [[4, 3], [3, null], [2, 1], [1, null]],
+    carriers: [1, 3],
+  },
+  // Algorithm 4: Three modulators to one carrier 4→1, 3→1, 2→1→OUT
+  3: {
+    positions: { 4: { x: 30, y: 10 }, 3: { x: 30, y: 30 }, 2: { x: 30, y: 50 }, 1: { x: 85, y: 30 } },
+    connections: [[4, 1], [3, 1], [2, 1], [1, null]],
+    carriers: [1],
+  },
+  // Algorithm 5: Split 4→3→OUT, 2→OUT, 1→OUT
+  4: {
+    positions: { 4: { x: 25, y: 15 }, 3: { x: 60, y: 15 }, 2: { x: 60, y: 35 }, 1: { x: 60, y: 55 } },
+    connections: [[4, 3], [3, null], [2, null], [1, null]],
+    carriers: [1, 2, 3],
+  },
+  // Algorithm 6: One modulator to three carriers 4→3, 4→2, 4→1
+  5: {
+    positions: { 4: { x: 25, y: 30 }, 3: { x: 70, y: 10 }, 2: { x: 70, y: 30 }, 1: { x: 70, y: 50 } },
+    connections: [[4, 3], [4, 2], [4, 1], [3, null], [2, null], [1, null]],
+    carriers: [1, 2, 3],
+  },
+  // Algorithm 7: 4→3→OUT, 2→OUT, 1→OUT (same as 5 but different visualization)
+  6: {
+    positions: { 4: { x: 25, y: 15 }, 3: { x: 60, y: 15 }, 2: { x: 60, y: 35 }, 1: { x: 60, y: 55 } },
+    connections: [[4, 3], [3, null], [2, null], [1, null]],
+    carriers: [1, 2, 3],
+  },
+  // Algorithm 8: All carriers (additive) 4→OUT, 3→OUT, 2→OUT, 1→OUT
+  7: {
+    positions: { 4: { x: 45, y: 10 }, 3: { x: 45, y: 25 }, 2: { x: 45, y: 40 }, 1: { x: 45, y: 55 } },
+    connections: [[4, null], [3, null], [2, null], [1, null]],
+    carriers: [1, 2, 3, 4],
+  },
+};
 
 export function AlgorithmDisplay({
   algorithm,
@@ -486,73 +517,61 @@ export function AlgorithmDisplay({
 }: AlgorithmDisplayProps) {
   const colors = LCD_COLORS[color];
 
-  // Algorithm routing definitions: [from, to] pairs, null means output
-  const algorithmRoutes: Record<number, Array<[number, number | null]>> = {
-    0: [[4, 3], [3, 2], [2, 1], [1, null]], // Serial: 4→3→2→1→out
-    1: [[4, 2], [3, 2], [2, 1], [1, null]], // Branch: (4+3)→2→1→out
-    2: [[4, 3], [3, null], [2, 1], [1, null]], // Two stacks
-    3: [[4, 1], [3, 1], [2, 1], [1, null]], // Three to one
-    4: [[4, 3], [3, null], [2, null], [1, null]], // Mixed
-    5: [[4, 3], [4, 2], [4, 1], [3, null], [2, null], [1, null]], // One to three
-    6: [[4, 3], [3, null], [2, null], [1, null]], // Parallel with one FM pair
-    7: [[4, null], [3, null], [2, null], [1, null]], // All parallel
-  };
-
-  const carriers: Record<number, number[]> = {
-    0: [1],
-    1: [1],
-    2: [1, 3],
-    3: [1],
-    4: [1, 2, 3],
-    5: [1, 2, 3],
-    6: [1, 2, 3],
-    7: [1, 2, 3, 4],
-  };
-
   const draw = useMemo(() => {
     return (ctx: CanvasRenderingContext2D, w: number, h: number) => {
-      const routes = algorithmRoutes[algorithm] || [];
-      const carrierList = carriers[algorithm] || [];
+      const layout = ALGORITHM_LAYOUTS[algorithm] || ALGORITHM_LAYOUTS[0];
+      const { positions, connections, carriers } = layout;
 
-      // Operator positions
-      const opPositions: Record<number, { x: number; y: number }> = {
-        4: { x: 25, y: 20 },
-        3: { x: 55, y: 20 },
-        2: { x: 85, y: 20 },
-        1: { x: 115, y: 20 },
-      };
+      const opRadius = 10;
+      const outputX = w - 25;
+      const outputY = h / 2 - 5;
 
-      const outputX = 145;
-      const outputY = 20;
-      const opRadius = 12;
+      // Draw connections first (behind operators)
+      ctx.lineWidth = 1.5;
 
-      // Draw connections
-      ctx.strokeStyle = colors.fg + '88';
-      ctx.lineWidth = 1;
-
-      routes.forEach(([from, to]) => {
-        const fromPos = opPositions[from];
+      connections.forEach(([from, to]) => {
+        const fromPos = positions[from];
         if (!fromPos) return;
 
+        ctx.strokeStyle = colors.fg + '55';
         ctx.beginPath();
+
         if (to === null) {
           // Connection to output
-          ctx.moveTo(fromPos.x + opRadius, fromPos.y);
-          ctx.lineTo(outputX - 5, outputY);
+          ctx.moveTo(fromPos.x + opRadius + 2, fromPos.y);
+          ctx.lineTo(outputX - 8, outputY);
         } else {
-          const toPos = opPositions[to];
+          // Connection between operators
+          const toPos = positions[to];
           if (toPos) {
-            ctx.moveTo(fromPos.x + opRadius, fromPos.y);
-            ctx.lineTo(toPos.x - opRadius, toPos.y);
+            ctx.moveTo(fromPos.x + opRadius + 2, fromPos.y);
+            ctx.lineTo(toPos.x - opRadius - 2, toPos.y);
           }
         }
         ctx.stroke();
+
+        // Draw arrow head
+        if (to !== null) {
+          const toPos = positions[to];
+          if (toPos) {
+            const angle = Math.atan2(toPos.y - fromPos.y, toPos.x - fromPos.x);
+            const arrowX = toPos.x - opRadius - 2;
+            const arrowY = toPos.y;
+            ctx.fillStyle = colors.fg + '55';
+            ctx.beginPath();
+            ctx.moveTo(arrowX, arrowY);
+            ctx.lineTo(arrowX - 4 * Math.cos(angle - 0.4), arrowY - 4 * Math.sin(angle - 0.4));
+            ctx.lineTo(arrowX - 4 * Math.cos(angle + 0.4), arrowY - 4 * Math.sin(angle + 0.4));
+            ctx.closePath();
+            ctx.fill();
+          }
+        }
       });
 
       // Draw operators
-      Object.entries(opPositions).forEach(([opStr, pos]) => {
+      Object.entries(positions).forEach(([opStr, pos]) => {
         const op = parseInt(opStr);
-        const isCarrier = carrierList.includes(op);
+        const isCarrier = carriers.includes(op);
         const isActive = activeOps.includes(op);
 
         // Operator circle
@@ -562,61 +581,166 @@ export function AlgorithmDisplay({
         if (isActive) {
           ctx.fillStyle = colors.fg;
           ctx.shadowColor = colors.fg;
-          ctx.shadowBlur = 8;
+          ctx.shadowBlur = 6;
         } else {
-          ctx.fillStyle = isCarrier ? colors.fg + '66' : colors.fg + '33';
+          ctx.fillStyle = isCarrier ? colors.fg + '44' : colors.fg + '22';
           ctx.shadowBlur = 0;
         }
         ctx.fill();
         ctx.shadowBlur = 0;
 
-        // Border for carriers
+        // Carrier ring
         if (isCarrier) {
           ctx.strokeStyle = colors.fg;
           ctx.lineWidth = 2;
           ctx.stroke();
         }
 
-        // Operator number
+        // Operator label
         ctx.fillStyle = isActive ? colors.bg : colors.fg;
-        ctx.font = 'bold 10px monospace';
+        ctx.font = 'bold 9px monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(opStr, pos.x, pos.y);
       });
 
-      // Draw output arrow
-      ctx.fillStyle = colors.fg;
+      // Draw output triangle
+      ctx.fillStyle = colors.fg + '88';
       ctx.beginPath();
-      ctx.moveTo(outputX, outputY - 5);
-      ctx.lineTo(outputX + 8, outputY);
-      ctx.lineTo(outputX, outputY + 5);
+      ctx.moveTo(outputX - 6, outputY - 6);
+      ctx.lineTo(outputX + 2, outputY);
+      ctx.lineTo(outputX - 6, outputY + 6);
       ctx.closePath();
       ctx.fill();
 
-      // Algorithm label
+      // "OUT" label
+      ctx.fillStyle = colors.fg + '66';
+      ctx.font = '7px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('OUT', outputX - 2, outputY + 14);
+
+      // Algorithm number label
       ctx.fillStyle = colors.fg;
       ctx.font = 'bold 11px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText(`ALG ${algorithm + 1}`, w / 2, h - 10);
-
-      // Legend
-      ctx.font = '7px monospace';
-      ctx.fillStyle = colors.fg + '88';
-      ctx.textAlign = 'left';
-      ctx.fillText('M=mod C=carrier', 5, h - 4);
+      ctx.fillText(`ALG ${algorithm + 1}`, w / 2, h - 6);
     };
   }, [algorithm, activeOps, colors]);
 
   return <LcdCanvas width={width} height={height} color={color} draw={draw} />;
 }
 
-// Audio level meter - shows actual audio levels from analyser
+// Audio level meter
 interface AudioLevelMeterProps {
   analyser: AnalyserNode | null;
   width?: number;
   height?: number;
   color?: LcdColor;
+}
+
+// 7-Segment Display - SVG-based for clean rendering
+interface SevenSegmentDisplayProps {
+  value: number;
+  digits?: number;
+  color?: 'red' | 'green' | 'amber';
+}
+
+// 7-segment digit patterns (a,b,c,d,e,f,g) - standard segment naming
+const SEGMENT_PATTERNS: Record<string, boolean[]> = {
+  '0': [true, true, true, true, true, true, false],
+  '1': [false, true, true, false, false, false, false],
+  '2': [true, true, false, true, true, false, true],
+  '3': [true, true, true, true, false, false, true],
+  '4': [false, true, true, false, false, true, true],
+  '5': [true, false, true, true, false, true, true],
+  '6': [true, false, true, true, true, true, true],
+  '7': [true, true, true, false, false, false, false],
+  '8': [true, true, true, true, true, true, true],
+  '9': [true, true, true, true, false, true, true],
+  ' ': [false, false, false, false, false, false, false],
+};
+
+const SEGMENT_COLORS = {
+  red: { on: '#ff2222', off: '#330808', bg: '#1a0505', glow: '#ff222244' },
+  green: { on: '#22ff44', off: '#083310', bg: '#051a08', glow: '#22ff4444' },
+  amber: { on: '#ffaa00', off: '#332200', bg: '#1a1000', glow: '#ffaa0044' },
+};
+
+// Single 7-segment digit component
+function SevenSegmentDigit({ char, color, size }: { char: string; color: 'red' | 'green' | 'amber'; size: number }) {
+  const pattern = SEGMENT_PATTERNS[char] || SEGMENT_PATTERNS[' '];
+  const colors = SEGMENT_COLORS[color];
+
+  const w = size;
+  const h = size * 1.8;
+  const t = size * 0.15; // segment thickness
+  const g = size * 0.06; // gap between segments
+
+  // Segment paths for a proper 7-segment display
+  const segments = [
+    // a - top horizontal
+    { d: `M${g + t},${g} L${w - g - t},${g} L${w - g},${g + t/2} L${w - g - t},${g + t} L${g + t},${g + t} L${g},${g + t/2} Z`, active: pattern[0] },
+    // b - top right vertical
+    { d: `M${w - g},${g + t + g} L${w - g},${h/2 - g/2 - t/2} L${w - g - t/2},${h/2 - g/2} L${w - g - t},${h/2 - g/2 - t/2} L${w - g - t},${g + t + g} L${w - g - t/2},${g + t/2 + g} Z`, active: pattern[1] },
+    // c - bottom right vertical
+    { d: `M${w - g},${h/2 + g/2 + t/2} L${w - g},${h - g - t - g} L${w - g - t/2},${h - g - t/2 - g} L${w - g - t},${h - g - t - g} L${w - g - t},${h/2 + g/2 + t/2} L${w - g - t/2},${h/2 + g/2} Z`, active: pattern[2] },
+    // d - bottom horizontal
+    { d: `M${g + t},${h - g - t} L${w - g - t},${h - g - t} L${w - g},${h - g - t/2} L${w - g - t},${h - g} L${g + t},${h - g} L${g},${h - g - t/2} Z`, active: pattern[3] },
+    // e - bottom left vertical
+    { d: `M${g},${h/2 + g/2 + t/2} L${g + t/2},${h/2 + g/2} L${g + t},${h/2 + g/2 + t/2} L${g + t},${h - g - t - g} L${g + t/2},${h - g - t/2 - g} L${g},${h - g - t - g} Z`, active: pattern[4] },
+    // f - top left vertical
+    { d: `M${g},${g + t + g} L${g + t/2},${g + t/2 + g} L${g + t},${g + t + g} L${g + t},${h/2 - g/2 - t/2} L${g + t/2},${h/2 - g/2} L${g},${h/2 - g/2 - t/2} Z`, active: pattern[5] },
+    // g - middle horizontal
+    { d: `M${g + t},${h/2 - t/2} L${w - g - t},${h/2 - t/2} L${w - g - t/2},${h/2} L${w - g - t},${h/2 + t/2} L${g + t},${h/2 + t/2} L${g + t/2},${h/2} Z`, active: pattern[6] },
+  ];
+
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+      {segments.map((seg, i) => (
+        <path
+          key={i}
+          d={seg.d}
+          fill={seg.active ? colors.on : colors.off}
+          style={seg.active ? { filter: `drop-shadow(0 0 2px ${colors.glow})` } : undefined}
+        />
+      ))}
+    </svg>
+  );
+}
+
+export function SevenSegmentDisplay({
+  value,
+  digits = 3,
+  color = 'red',
+}: SevenSegmentDisplayProps) {
+  const valueStr = Math.floor(value).toString().padStart(digits, ' ');
+  const colors = SEGMENT_COLORS[color];
+  const digitSize = 18;
+
+  return (
+    <div
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 3,
+        background: colors.bg,
+        padding: '6px 8px',
+        borderRadius: 4,
+        // Physical bezel effect
+        border: '2px solid #0a0a0a',
+        boxShadow: `
+          inset 0 1px 0 ${colors.off},
+          inset 0 -1px 2px rgba(0,0,0,0.8),
+          0 1px 0 #333,
+          0 2px 4px rgba(0,0,0,0.5)
+        `,
+      }}
+    >
+      {valueStr.split('').map((char, i) => (
+        <SevenSegmentDigit key={`${i}-${char}`} char={char} color={color} size={digitSize} />
+      ))}
+    </div>
+  );
 }
 
 export function AudioLevelMeter({
@@ -644,30 +768,27 @@ export function AudioLevelMeter({
 
       if (analyser) {
         analyser.getByteTimeDomainData(dataArray);
-        // Calculate RMS level
         let sum = 0;
         for (let i = 0; i < dataArray.length; i++) {
           const sample = (dataArray[i] - 128) / 128;
           sum += sample * sample;
         }
-        level = Math.sqrt(sum / dataArray.length) * 3; // Scale up for visibility
+        level = Math.sqrt(sum / dataArray.length) * 3;
         level = Math.min(1, level);
       }
 
-      // Update peak with decay
       if (level > peakRef.current) {
         peakRef.current = level;
       } else {
         peakRef.current *= 0.95;
       }
 
-      // Clear
       ctx.fillStyle = colors.bg;
       ctx.fillRect(0, 0, width, height);
 
-      const padding = 3;
-      const segmentGap = 2;
-      const totalSegments = 12;
+      const padding = 2;
+      const segmentGap = 1;
+      const totalSegments = 14;
       const segmentW = width - padding * 2;
       const segmentH = (height - padding * 2 - segmentGap * (totalSegments - 1)) / totalSegments;
 
@@ -679,7 +800,6 @@ export function AudioLevelMeter({
         const isPeak = i === peakSegment - 1;
         const segmentLevel = i / totalSegments;
 
-        // Color based on level (green → yellow → red)
         let segColor = '#33ff66';
         if (segmentLevel > 0.8) {
           segColor = '#ff3333';
@@ -691,14 +811,10 @@ export function AudioLevelMeter({
 
         if (isActive || isPeak) {
           ctx.fillStyle = segColor;
-          ctx.shadowColor = segColor;
-          ctx.shadowBlur = isPeak ? 2 : 4;
         } else {
-          ctx.fillStyle = segColor + '22';
-          ctx.shadowBlur = 0;
+          ctx.fillStyle = segColor + '18';
         }
         ctx.fillRect(padding, y, segmentW, segmentH);
-        ctx.shadowBlur = 0;
       }
 
       animationRef.current = requestAnimationFrame(animate);

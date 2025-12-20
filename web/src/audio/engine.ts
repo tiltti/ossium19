@@ -177,6 +177,14 @@ export class AudioEngine {
     this.synth?.panic();
   }
 
+  setPitchBend(value: number): void {
+    this.synth?.setPitchBend(value);
+  }
+
+  setPitchBendRange(semitones: number): void {
+    this.synth?.setPitchBendRange(semitones);
+  }
+
   setParam<K extends keyof SynthParams>(param: K, value: SynthParams[K]): void {
     this.params[param] = value;
 
@@ -267,6 +275,14 @@ export class AudioEngine {
 
   getAnalyserNode(): AnalyserNode | null {
     return this.analyser;
+  }
+
+  getAudioContext(): AudioContext | null {
+    return this.context;
+  }
+
+  getEffectsOutput(): AudioNode | null {
+    return this.effectsChain?.getOutput() ?? null;
   }
 
   getSampleRate(): number {

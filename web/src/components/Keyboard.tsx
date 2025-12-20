@@ -1,51 +1,37 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { useSynthStore } from '../stores/synth-store';
 
 interface KeyProps {
   note: number;
   isBlack: boolean;
   isActive: boolean;
-  onNoteOn: (note: number) => void;
-  onNoteOff: (note: number) => void;
+  keyLabel?: string;
+  onMouseDown: (note: number) => void;
+  onMouseEnter: (note: number) => void;
+  onMouseLeave: (note: number) => void;
+  onMouseUp: (note: number) => void;
 }
 
-function Key({ note, isBlack, isActive, onNoteOn, onNoteOff }: KeyProps) {
-  const [isPressed, setIsPressed] = useState(false);
-
-  const handleMouseDown = useCallback(() => {
-    setIsPressed(true);
-    onNoteOn(note);
-  }, [note, onNoteOn]);
-
-  const handleMouseUp = useCallback(() => {
-    setIsPressed(false);
-    onNoteOff(note);
-  }, [note, onNoteOff]);
-
-  const handleMouseLeave = useCallback(() => {
-    if (isPressed) {
-      setIsPressed(false);
-      onNoteOff(note);
-    }
-  }, [isPressed, note, onNoteOff]);
-
+function Key({ note, isBlack, isActive, keyLabel, onMouseDown, onMouseEnter, onMouseLeave, onMouseUp }: KeyProps) {
   const baseStyle: React.CSSProperties = isBlack
     ? {
-        width: 24,
-        height: 80,
-        background: isActive || isPressed ? '#444' : '#222',
-        marginLeft: -12,
-        marginRight: -12,
+        width: 22,
+        height: 70,
+        background: isActive ? '#666' : '#1a1a1a',
+        marginLeft: -11,
+        marginRight: -11,
         zIndex: 1,
         borderRadius: '0 0 3px 3px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.5)',
+        boxShadow: isActive ? '0 0 8px rgba(100,200,255,0.5)' : '0 2px 4px rgba(0,0,0,0.5)',
+        position: 'relative',
       }
     : {
-        width: 36,
-        height: 120,
-        background: isActive || isPressed ? '#ddd' : '#fff',
+        width: 32,
+        height: 110,
+        background: isActive ? '#aaddff' : '#f8f8f8',
         borderRadius: '0 0 4px 4px',
-        boxShadow: 'inset 0 -2px 4px rgba(0,0,0,0.1)',
+        boxShadow: isActive ? '0 0 8px rgba(100,200,255,0.3)' : 'inset 0 -2px 4px rgba(0,0,0,0.1)',
+        position: 'relative',
       };
 
   return (
@@ -53,63 +39,63 @@ function Key({ note, isBlack, isActive, onNoteOn, onNoteOff }: KeyProps) {
       style={{
         ...baseStyle,
         cursor: 'pointer',
-        transition: 'background 0.05s',
-        border: '1px solid #333',
+        transition: 'background 0.03s, box-shadow 0.03s',
+        border: isBlack ? '1px solid #000' : '1px solid #ccc',
+        userSelect: 'none',
       }}
-      onMouseDown={handleMouseDown}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseLeave}
-    />
+      onMouseDown={(e) => {
+        e.preventDefault();
+        onMouseDown(note);
+      }}
+      onMouseEnter={() => onMouseEnter(note)}
+      onMouseLeave={() => onMouseLeave(note)}
+      onMouseUp={() => onMouseUp(note)}
+    >
+      {keyLabel && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: isBlack ? 4 : 6,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            fontSize: isBlack ? 8 : 9,
+            color: isBlack ? '#666' : '#999',
+            fontWeight: 'bold',
+            fontFamily: 'monospace',
+            pointerEvents: 'none',
+          }}
+        >
+          {keyLabel}
+        </div>
+      )}
+    </div>
   );
 }
 
-// Keyboard to MIDI note mapping (QWERTY layout) - 3 octaves
-// Layout mirrors piano: black keys are above/between white keys
-const keyMap: Record<string, number> = {
-  // === OCTAVE 3 (lowest) - bottom two rows ===
-  // White keys: Z X C V B N M
-  z: 48, // C3
-  x: 50, // D3
-  c: 52, // E3
-  v: 53, // F3
-  b: 55, // G3
-  n: 57, // A3
-  m: 59, // B3
-  // Black keys: S D _ G H J (above Z X C V B N M)
-  s: 49, // C#3 (between Z-X)
-  d: 51, // D#3 (between X-C)
-  g: 54, // F#3 (between V-B)
-  h: 56, // G#3 (between B-N)
-  j: 58, // A#3 (between N-M)
+// Get keyboard mapping for a given base octave
+function getKeyMap(baseOctave: number): Record<string, number> {
+  const base = baseOctave * 12 + 12; // MIDI offset
+  return {
+    // Octave 1 (lowest) - bottom row
+    z: base, x: base + 2, c: base + 4, v: base + 5, b: base + 7, n: base + 9, m: base + 11,
+    s: base + 1, d: base + 3, g: base + 6, h: base + 8, j: base + 10,
+    // Octave 2 - middle rows
+    q: base + 12, w: base + 14, e: base + 16, r: base + 17, t: base + 19, y: base + 21, u: base + 23,
+    '2': base + 13, '3': base + 15, '5': base + 18, '6': base + 20, '7': base + 22,
+    // Octave 3 (highest) - top row
+    i: base + 24, o: base + 26, p: base + 28, '[': base + 29, ']': base + 31,
+    '9': base + 25, '0': base + 27, '-': base + 30,
+  };
+}
 
-  // === OCTAVE 4 (middle) - middle two rows ===
-  // White keys: Q W E R T Y U
-  q: 60, // C4
-  w: 62, // D4
-  e: 64, // E4
-  r: 65, // F4
-  t: 67, // G4
-  y: 69, // A4
-  u: 71, // B4
-  // Black keys: 2 3 _ 5 6 7 (above Q W E R T Y U)
-  '2': 61, // C#4 (between Q-W)
-  '3': 63, // D#4 (between W-E)
-  '5': 66, // F#4 (between R-T)
-  '6': 68, // G#4 (between T-Y)
-  '7': 70, // A#4 (between Y-U)
-
-  // === OCTAVE 5 (highest) - top row ===
-  // White keys: I O P [ ] \ (or extended)
-  i: 72, // C5
-  o: 74, // D5
-  p: 76, // E5
-  '[': 77, // F5
-  ']': 79, // G5
-  // Black keys: 9 0 _ - =
-  '9': 73, // C#5 (between I-O)
-  '0': 75, // D#5 (between O-P)
-  '-': 78, // F#5 (between [-])
-};
+// Reverse map: MIDI note -> key label
+function getNoteKeyLabels(keyMap: Record<string, number>): Record<number, string> {
+  const result: Record<number, string> = {};
+  for (const [key, note] of Object.entries(keyMap)) {
+    result[note] = key.toUpperCase();
+  }
+  return result;
+}
 
 interface KeyboardProps {
   onNoteOn?: (note: number, velocity: number) => void;
@@ -128,20 +114,111 @@ export function Keyboard({
 }: KeyboardProps) {
   const store = useSynthStore();
 
-  // Use external values if provided, otherwise fall back to store
   const activeNotes = externalActiveNotes ?? store.activeNotes;
   const isInitialized = externalIsInitialized ?? store.isInitialized;
   const init = externalInit ?? store.init;
   const noteOn = externalNoteOn ?? ((note: number, velocity: number) => store.noteOn(note, velocity));
   const noteOff = externalNoteOff ?? store.noteOff;
-  const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
 
-  // Handle keyboard input
+  const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
+  const [baseOctave, setBaseOctave] = useState(3);
+  const [isMouseDown, setIsMouseDown] = useState(false);
+  const mouseNotesRef = useRef<Set<number>>(new Set());
+
+  const keyMap = getKeyMap(baseOctave);
+  const noteKeyLabels = getNoteKeyLabels(keyMap);
+
+  // Mouse note handling
+  const handleMouseNoteOn = useCallback(
+    async (note: number) => {
+      if (!isInitialized) {
+        await init();
+      }
+      if (!mouseNotesRef.current.has(note)) {
+        mouseNotesRef.current.add(note);
+        noteOn(note, 100);
+      }
+    },
+    [isInitialized, init, noteOn]
+  );
+
+  const handleMouseNoteOff = useCallback(
+    (note: number) => {
+      if (mouseNotesRef.current.has(note)) {
+        mouseNotesRef.current.delete(note);
+        noteOff(note);
+      }
+    },
+    [noteOff]
+  );
+
+  const handleKeyMouseDown = useCallback(
+    (note: number) => {
+      setIsMouseDown(true);
+      handleMouseNoteOn(note);
+    },
+    [handleMouseNoteOn]
+  );
+
+  const handleKeyMouseEnter = useCallback(
+    (note: number) => {
+      if (isMouseDown) {
+        handleMouseNoteOn(note);
+      }
+    },
+    [isMouseDown, handleMouseNoteOn]
+  );
+
+  const handleKeyMouseLeave = useCallback(
+    (note: number) => {
+      // Only release when dragging (painting) - allows gliding behavior
+      if (isMouseDown) {
+        handleMouseNoteOff(note);
+      }
+    },
+    [isMouseDown, handleMouseNoteOff]
+  );
+
+  const handleKeyMouseUp = useCallback(
+    (note: number) => {
+      handleMouseNoteOff(note);
+    },
+    [handleMouseNoteOff]
+  );
+
+  // Global mouse up to stop all notes when releasing outside keyboard
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      if (isMouseDown) {
+        setIsMouseDown(false);
+        mouseNotesRef.current.forEach((note) => {
+          noteOff(note);
+        });
+        mouseNotesRef.current.clear();
+      }
+    };
+
+    const handleGlobalMouseLeave = (e: MouseEvent) => {
+      if (e.target === document.documentElement) {
+        handleGlobalMouseUp();
+      }
+    };
+
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+    document.addEventListener('mouseleave', handleGlobalMouseLeave);
+
+    return () => {
+      window.removeEventListener('mouseup', handleGlobalMouseUp);
+      document.removeEventListener('mouseleave', handleGlobalMouseLeave);
+    };
+  }, [isMouseDown, noteOff]);
+
+  // Keyboard input
   useEffect(() => {
     const handleKeyDown = async (e: KeyboardEvent) => {
       if (e.repeat) return;
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
 
-      // Initialize on first keypress
       if (!isInitialized) {
         await init();
       }
@@ -172,87 +249,159 @@ export function Keyboard({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [isInitialized, init, noteOn, noteOff, pressedKeys]);
+  }, [isInitialized, init, noteOn, noteOff, pressedKeys, keyMap]);
 
-  // Generate keys for 3 octaves (C3 to B5)
-  const octaves = [3, 4, 5];
-  const whiteNotes = [0, 2, 4, 5, 7, 9, 11]; // C, D, E, F, G, A, B
-  const blackNotes = [1, 3, 6, 8, 10]; // C#, D#, F#, G#, A#
-  const blackPositions = [0.5, 1.5, 3.5, 4.5, 5.5]; // Position relative to white keys
+  // Visual keyboard range - 5 octaves
+  const displayOctaves = [1, 2, 3, 4, 5];
+  const whiteNotes = [0, 2, 4, 5, 7, 9, 11];
+  const blackNotes = [1, 3, 6, 8, 10];
+  const blackPositions = [0.5, 1.5, 3.5, 4.5, 5.5];
 
-  const handleNoteOn = useCallback(
-    async (note: number) => {
-      if (!isInitialized) {
-        await init();
-      }
-      noteOn(note, 100);
-    },
-    [isInitialized, init, noteOn]
-  );
+  // Which octaves are covered by keyboard
+  const keyboardStartOctave = baseOctave;
+  const keyboardEndOctave = baseOctave + 2;
 
   return (
-    <div style={{ padding: 20 }}>
+    <div style={{ padding: '10px 20px' }}>
+      {/* Octave selector */}
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+        <span style={{ color: '#666', fontSize: 10 }}>KEYBOARD RANGE:</span>
+        <button
+          onClick={() => setBaseOctave(Math.max(1, baseOctave - 1))}
+          disabled={baseOctave <= 1}
+          style={{
+            width: 28,
+            height: 24,
+            border: '1px solid #444',
+            borderRadius: 3,
+            background: baseOctave <= 1 ? '#222' : '#333',
+            color: baseOctave <= 1 ? '#444' : '#aaa',
+            cursor: baseOctave <= 1 ? 'not-allowed' : 'pointer',
+            fontSize: 14,
+          }}
+        >
+          -
+        </button>
+        <div
+          style={{
+            padding: '4px 12px',
+            background: '#0a0a0a',
+            border: '1px solid #333',
+            borderRadius: 4,
+            minWidth: 80,
+            textAlign: 'center',
+          }}
+        >
+          <span style={{ color: '#64c8ff', fontSize: 12, fontWeight: 'bold' }}>
+            C{keyboardStartOctave} - C{keyboardEndOctave + 1}
+          </span>
+        </div>
+        <button
+          onClick={() => setBaseOctave(Math.min(4, baseOctave + 1))}
+          disabled={baseOctave >= 4}
+          style={{
+            width: 28,
+            height: 24,
+            border: '1px solid #444',
+            borderRadius: 3,
+            background: baseOctave >= 4 ? '#222' : '#333',
+            color: baseOctave >= 4 ? '#444' : '#aaa',
+            cursor: baseOctave >= 4 ? 'not-allowed' : 'pointer',
+            fontSize: 14,
+          }}
+        >
+          +
+        </button>
+      </div>
+
       <div
         style={{
           display: 'flex',
           position: 'relative',
           justifyContent: 'center',
-          background: '#1a1a1a',
-          padding: '10px 20px 20px',
-          borderRadius: 8,
+          background: '#111',
+          padding: '8px 16px 16px',
+          borderRadius: 6,
+          overflowX: 'auto',
         }}
       >
-        {octaves.map((octave) => (
-          <div key={octave} style={{ display: 'flex', position: 'relative' }}>
-            {/* White keys */}
-            {whiteNotes.map((semitone) => {
-              const note = octave * 12 + semitone + 12; // +12 for MIDI offset
-              return (
-                <Key
-                  key={note}
-                  note={note}
-                  isBlack={false}
-                  isActive={activeNotes.has(note)}
-                  onNoteOn={handleNoteOn}
-                  onNoteOff={noteOff}
-                />
-              );
-            })}
-            {/* Black keys (positioned absolutely) */}
-            <div style={{ position: 'absolute', top: 0, left: 0, display: 'flex' }}>
-              {blackNotes.map((semitone, i) => {
+        {displayOctaves.map((octave) => {
+          const isInKeyboardRange = octave >= keyboardStartOctave && octave <= keyboardEndOctave;
+
+          return (
+            <div
+              key={octave}
+              style={{
+                display: 'flex',
+                position: 'relative',
+                opacity: isInKeyboardRange ? 1 : 0.5,
+              }}
+            >
+              {/* Octave label */}
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: -14,
+                  left: 0,
+                  fontSize: 9,
+                  color: isInKeyboardRange ? '#64c8ff' : '#444',
+                  fontWeight: isInKeyboardRange ? 'bold' : 'normal',
+                }}
+              >
+                C{octave}
+              </div>
+
+              {/* White keys */}
+              {whiteNotes.map((semitone) => {
                 const note = octave * 12 + semitone + 12;
                 return (
-                  <div
+                  <Key
                     key={note}
-                    style={{
-                      position: 'absolute',
-                      left: blackPositions[i] * 36 + 24, // 36 = white key width
-                    }}
-                  >
-                    <Key
-                      note={note}
-                      isBlack={true}
-                      isActive={activeNotes.has(note)}
-                      onNoteOn={handleNoteOn}
-                      onNoteOff={noteOff}
-                    />
-                  </div>
+                    note={note}
+                    isBlack={false}
+                    isActive={activeNotes.has(note)}
+                    keyLabel={noteKeyLabels[note]}
+                    onMouseDown={handleKeyMouseDown}
+                    onMouseEnter={handleKeyMouseEnter}
+                    onMouseLeave={handleKeyMouseLeave}
+                    onMouseUp={handleKeyMouseUp}
+                  />
                 );
               })}
+
+              {/* Black keys */}
+              <div style={{ position: 'absolute', top: 0, left: 0, display: 'flex' }}>
+                {blackNotes.map((semitone, i) => {
+                  const note = octave * 12 + semitone + 12;
+                  return (
+                    <div
+                      key={note}
+                      style={{
+                        position: 'absolute',
+                        left: blackPositions[i] * 32 + 21,
+                      }}
+                    >
+                      <Key
+                        note={note}
+                        isBlack={true}
+                        isActive={activeNotes.has(note)}
+                        keyLabel={noteKeyLabels[note]}
+                        onMouseDown={handleKeyMouseDown}
+                        onMouseEnter={handleKeyMouseEnter}
+                        onMouseLeave={handleKeyMouseLeave}
+                        onMouseUp={handleKeyMouseUp}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
-      <div
-        style={{
-          textAlign: 'center',
-          marginTop: 8,
-          fontSize: 11,
-          color: '#555',
-        }}
-      >
-        White: Z-M (C3), Q-U (C4), I-] (C5) | Black: SDGHJ, 23567, 90-
+
+      <div style={{ textAlign: 'center', marginTop: 10, fontSize: 10, color: '#555' }}>
+        Drag across keys to glide | Keyboard: ZXC..M (white) SDGHJ (black) | QWE..U, 23567 | IOP[], 90-
       </div>
     </div>
   );

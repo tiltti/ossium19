@@ -5,6 +5,7 @@ use std::f32::consts::PI;
 use serde::{Deserialize, Serialize};
 use crate::envelope::Envelope;
 use crate::filter::LadderFilter;
+use crate::lfo::Lfo;
 
 const TWO_PI: f32 = 2.0 * PI;
 
@@ -487,14 +488,25 @@ pub fn midi_to_freq(note: u8) -> f32 {
 pub struct Fm4OpVoiceManager {
     voices: Vec<Fm4OpVoice>,
     sample_rate: f32,
+    /// LFO for vibrato (pitch modulation)
+    vibrato_lfo: Lfo,
+    /// Vibrato depth in cents (0-100)
+    vibrato_depth: f32,
+    /// Master volume
+    master_volume: f32,
 }
 
 impl Fm4OpVoiceManager {
     pub fn new(num_voices: usize, sample_rate: f32) -> Self {
         let voices = (0..num_voices).map(|_| Fm4OpVoice::new(sample_rate)).collect();
+        let mut vibrato_lfo = Lfo::new(sample_rate);
+        vibrato_lfo.set_frequency(5.0); // Default 5 Hz vibrato rate
         Self {
             voices,
             sample_rate,
+            vibrato_lfo,
+            vibrato_depth: 0.0,
+            master_volume: 0.7,
         }
     }
 
@@ -503,6 +515,7 @@ impl Fm4OpVoiceManager {
         for voice in &mut self.voices {
             voice.set_sample_rate(sample_rate);
         }
+        self.vibrato_lfo.set_sample_rate(sample_rate);
     }
 
     /// Find a free voice or steal the oldest one
@@ -550,11 +563,30 @@ impl Fm4OpVoiceManager {
 
     /// Process all voices and return mixed output
     pub fn tick(&mut self) -> f32 {
+        // Get vibrato modulation
+        let vibrato = if self.vibrato_depth > 0.0 {
+            let lfo_value = self.vibrato_lfo.tick();
+            // Convert depth in cents to frequency multiplier
+            // depth of 50 cents = half semitone
+            let cents = lfo_value * self.vibrato_depth;
+            (2.0_f32).powf(cents / 1200.0)
+        } else {
+            1.0
+        };
+
         let mut output = 0.0;
         for voice in &mut self.voices {
+            // Apply vibrato by temporarily modifying operator frequencies
+            if vibrato != 1.0 && voice.is_active() {
+                for op in &mut voice.operators {
+                    let base_freq = op.oscillator.frequency;
+                    op.oscillator.set_frequency(base_freq * vibrato);
+                }
+            }
             output += voice.tick();
+            // Restore frequencies (next tick will recalculate anyway)
         }
-        output
+        output * self.master_volume
     }
 
     /// Set algorithm for all voices
@@ -579,6 +611,33 @@ impl Fm4OpVoiceManager {
             for voice in &mut self.voices {
                 voice.operators[op_index].level = level.clamp(0.0, 1.0);
             }
+        }
+    }
+
+    /// Get operator level (for debugging)
+    pub fn get_op_level(&self, op_index: usize) -> f32 {
+        if op_index < 4 && !self.voices.is_empty() {
+            self.voices[0].operators[op_index].level
+        } else {
+            0.0
+        }
+    }
+
+    /// Get operator ratio (for debugging)
+    pub fn get_op_ratio(&self, op_index: usize) -> f32 {
+        if op_index < 4 && !self.voices.is_empty() {
+            self.voices[0].operators[op_index].ratio
+        } else {
+            1.0
+        }
+    }
+
+    /// Get current algorithm (for debugging)
+    pub fn get_algorithm(&self) -> u8 {
+        if self.voices.is_empty() {
+            0
+        } else {
+            self.voices[0].algorithm as u8
         }
     }
 
@@ -669,6 +728,21 @@ impl Fm4OpVoiceManager {
     /// Get mutable access to voices
     pub fn voices_mut(&mut self) -> &mut [Fm4OpVoice] {
         &mut self.voices
+    }
+
+    /// Set vibrato depth in cents (0-100)
+    pub fn set_vibrato_depth(&mut self, depth: f32) {
+        self.vibrato_depth = depth.clamp(0.0, 100.0);
+    }
+
+    /// Set vibrato rate in Hz (0.1-20)
+    pub fn set_vibrato_rate(&mut self, rate: f32) {
+        self.vibrato_lfo.set_frequency(rate.clamp(0.1, 20.0));
+    }
+
+    /// Set master volume (0.0-1.0)
+    pub fn set_master_volume(&mut self, volume: f32) {
+        self.master_volume = volume.clamp(0.0, 1.0);
     }
 }
 

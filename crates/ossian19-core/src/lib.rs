@@ -22,6 +22,6 @@ pub use envelope::Envelope;
 pub use filter::{FilterType, LadderFilter, StateVariableFilter};
 pub use fm::{FmSynth, Fm4OpSynth, Fm4OpVoice, Fm4OpVoiceManager, FmAlgorithm, FmOperator};
 pub use lfo::{Lfo, LfoWaveform};
-pub use oscillator::{Oscillator, Waveform};
+pub use oscillator::{Oscillator, Waveform, SubWaveform};
 pub use synth::{Synth, SynthParams};
 pub use voice::{Voice, VoiceManager, freq_to_midi, midi_to_freq};

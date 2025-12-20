@@ -86,6 +86,20 @@ export class Fm4OpEngine {
     const sampleRate = this.context.sampleRate;
 
     this.synth = new Ossian19Fm4Op(sampleRate, 8);
+
+    // DEBUG: Test if WASM methods actually work
+    console.log('[Fm4OpEngine] Testing WASM methods...');
+    console.log('[Fm4OpEngine] setOpRatio exists:', typeof this.synth.setOpRatio);
+    console.log('[Fm4OpEngine] setOpLevel exists:', typeof this.synth.setOpLevel);
+    console.log('[Fm4OpEngine] setAlgorithm exists:', typeof this.synth.setAlgorithm);
+
+    // Expose synth globally for console testing (update on each init)
+    (window as unknown as { _fm4opSynth: Ossian19Fm4Op })._fm4opSynth = this.synth;
+    (window as unknown as { _fm4opEngine: Fm4OpEngine })._fm4opEngine = this;
+    console.log('[Fm4OpEngine] Synth exposed as window._fm4opSynth for debugging');
+    console.log('[Fm4OpEngine] Engine exposed as window._fm4opEngine');
+
+    // Apply current params
     this.applyAllParams();
 
     this.analyser = this.context.createAnalyser();
@@ -115,12 +129,20 @@ export class Fm4OpEngine {
   }
 
   private applyAllParams(): void {
-    if (!this.synth) return;
+    if (!this.synth) {
+      console.warn('[Fm4OpEngine] applyAllParams: synth is null, skipping!');
+      return;
+    }
 
+    const timestamp = Date.now();
+    console.log(`[Fm4OpEngine] applyAllParams @ ${timestamp}: applying to WASM`);
+    console.log(`[Fm4OpEngine] @ ${timestamp} Algorithm:`, this.params.algorithm);
     this.synth.setAlgorithm(this.params.algorithm);
 
     for (let i = 0; i < 4; i++) {
       const op = this.params.operators[i];
+      console.log(`[Fm4OpEngine] OP${i+1}: ratio=${op.ratio.toFixed(2)}, level=${op.level.toFixed(2)}, detune=${op.detune}, feedback=${op.feedback.toFixed(2)}`);
+      console.log(`[Fm4OpEngine] OP${i+1} ENV: A=${op.attack.toFixed(3)}, D=${op.decay.toFixed(2)}, S=${op.sustain.toFixed(2)}, R=${op.release.toFixed(2)}`);
       this.synth.setOpRatio(i, op.ratio);
       this.synth.setOpLevel(i, op.level);
       this.synth.setOpDetune(i, op.detune);
@@ -132,6 +154,8 @@ export class Fm4OpEngine {
       this.synth.setOpVelocitySens(i, op.velocitySens);
     }
 
+    console.log('[Fm4OpEngine] Filter:', this.params.filterEnabled, 'cutoff:', this.params.filterCutoff);
+    console.log('[Fm4OpEngine] Master volume:', this.params.masterVolume);
     this.synth.setFilterEnabled(this.params.filterEnabled);
     this.synth.setFilterCutoff(this.params.filterCutoff);
     this.synth.setFilterResonance(this.params.filterResonance);
@@ -151,6 +175,8 @@ export class Fm4OpEngine {
   }
 
   noteOn(note: number, velocity: number = 100): void {
+    console.log(`[Fm4OpEngine] noteOn: note=${note}, velocity=${velocity}, synth exists=${!!this.synth}`);
+    console.log(`[Fm4OpEngine] Current params: algo=${this.params.algorithm}, op1.ratio=${this.params.operators[0].ratio}, op1.level=${this.params.operators[0].level}`);
     if (this.context?.state === 'suspended') {
       this.context.resume();
     }
@@ -239,6 +265,25 @@ export class Fm4OpEngine {
     this.synth?.setMasterVolume(volume);
   }
 
+  // Pitch bend (not yet implemented in WASM, but ready for UI)
+  setPitchBend(_value: number): void {
+    // TODO: Add to WASM synth when FM pitch bend is implemented
+    // this.synth?.setPitchBend(value);
+  }
+
+  // Mod wheel controls vibrato depth (LFO to pitch)
+  setModWheel(value: number): void {
+    // Map mod wheel to vibrato depth (0-1 -> 0-50 cents)
+    // Note: Requires WASM rebuild with `npm run build:wasm`
+    (this.synth as { setVibratoDepth?: (d: number) => void })?.setVibratoDepth?.(value * 50);
+  }
+
+  // Set vibrato rate in Hz (typically 3-8 Hz)
+  setVibratoRate(rate: number): void {
+    // Note: Requires WASM rebuild with `npm run build:wasm`
+    (this.synth as { setVibratoRate?: (r: number) => void })?.setVibratoRate?.(rate);
+  }
+
   // Effects
   setEffectParam<K extends keyof EffectParams>(param: K, value: EffectParams[K]): void {
     this.effectParams[param] = value;
@@ -277,7 +322,18 @@ export class Fm4OpEngine {
 
   // Load preset
   loadParams(params: Fm4OpParams): void {
-    this.params = { ...params };
+    console.log('[Fm4OpEngine] loadParams called, synth exists:', !!this.synth, 'isInitialized:', this.isInitialized);
+    console.log('[Fm4OpEngine] Loading params:', {
+      algorithm: params.algorithm,
+      op0: { ratio: params.operators[0].ratio, level: params.operators[0].level },
+      op1: { ratio: params.operators[1].ratio, level: params.operators[1].level },
+    });
+
+    // Deep copy operators to avoid reference issues
+    this.params = {
+      ...params,
+      operators: params.operators.map(op => ({ ...op })) as typeof params.operators,
+    };
     this.applyAllParams();
   }
 
@@ -313,5 +369,15 @@ export class Fm4OpEngine {
   }
 }
 
-// Singleton instance
-export const fm4opEngine = new Fm4OpEngine();
+// Singleton instance - persist across HMR reloads
+const GLOBAL_KEY = '__fm4opEngine__';
+
+function getOrCreateEngine(): Fm4OpEngine {
+  const win = window as unknown as { [GLOBAL_KEY]?: Fm4OpEngine };
+  if (!win[GLOBAL_KEY]) {
+    win[GLOBAL_KEY] = new Fm4OpEngine();
+  }
+  return win[GLOBAL_KEY];
+}
+
+export const fm4opEngine = getOrCreateEngine();

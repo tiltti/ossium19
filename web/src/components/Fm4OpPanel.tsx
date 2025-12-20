@@ -4,13 +4,28 @@ import { getFm4OpPresetsByCategory } from '../audio/fm4op-presets';
 import { Knob } from './Knob';
 import {
   LcdScreen,
+  LcdColor,
   EnvelopeDisplay,
   WaveformDisplay,
   SpectrumDisplay,
   AlgorithmDisplay,
   AudioLevelMeter,
+  SevenSegmentDisplay,
 } from './LcdScreen';
-import { useEffect, useState } from 'react';
+import { useArpStore } from '../stores/arp-store';
+import { Theme, THEMES } from '../theme';
+import { useEffect, useState, useRef } from 'react';
+import { WoodPanel } from './WoodPanel';
+import { Keyboard } from './Keyboard';
+import { PitchModWheels } from './PitchModWheels';
+
+// LCD color palette for each LCD color type
+const LCD_TEXT_COLORS: Record<LcdColor, { fg: string; fgMuted: string; fgAccent: string }> = {
+  green: { fg: '#33ff66', fgMuted: '#33ff6688', fgAccent: '#66ffaa' },
+  amber: { fg: '#ffaa00', fgMuted: '#ffaa0088', fgAccent: '#ffcc44' },
+  blue: { fg: '#44aaff', fgMuted: '#44aaff88', fgAccent: '#66aaff' },
+  white: { fg: '#ffffff', fgMuted: '#ffffff88', fgAccent: '#ffffff' },
+};
 
 // Common frequency ratios for FM synthesis
 const RATIO_PRESETS = [0.5, 1, 2, 3, 4, 5, 6, 7, 8];
@@ -50,10 +65,12 @@ function OperatorPanel({
   opIndex,
   isCarrier,
   showFeedback,
+  lcdColor = 'amber',
 }: {
   opIndex: number;
   isCarrier: boolean;
   showFeedback: boolean;
+  lcdColor?: LcdColor;
 }) {
   const {
     params,
@@ -117,7 +134,7 @@ function OperatorPanel({
           release={op.release}
           width={150}
           height={50}
-          color={isCarrier ? 'green' : 'amber'}
+          color={lcdColor}
         />
       </div>
 
@@ -217,85 +234,128 @@ function OperatorPanel({
   );
 }
 
-function AlgorithmSelector() {
-  const { params, setAlgorithm, activeNotes } = useFm4OpStore();
-  const activeOps = activeNotes.size > 0 ? [1, 2, 3, 4] : [];
+// LCD-style FM preset selector
+function FmPresetSelector({ color = '#ff8c42' }: { color?: string }) {
+  const { currentPreset, loadPreset } = useFm4OpStore();
+  const presetsByCategory = getFm4OpPresetsByCategory();
+  const presets = Array.from(presetsByCategory.values()).flat();
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const currentIndex = presets.findIndex(p => p.name === currentPreset);
+  const currentPresetObj = currentIndex >= 0 ? presets[currentIndex] : null;
+
+  const navigatePreset = (direction: -1 | 1) => {
+    const newIndex = currentIndex + direction;
+    if (newIndex >= 0 && newIndex < presets.length) {
+      loadPreset(presets[newIndex]);
+    }
+  };
 
   return (
-    <div
-      style={{
-        background: '#151515',
-        borderRadius: 8,
-        padding: 16,
-        marginBottom: 12,
-        border: '2px solid #333',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-      }}
-    >
-      <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
-        {/* Algorithm LCD Display */}
-        <div>
-          <div
-            style={{
-              fontSize: 10,
-              color: '#ff8c42',
-              textTransform: 'uppercase',
-              letterSpacing: 1,
-              marginBottom: 8,
-            }}
-          >
-            Algorithm
-          </div>
-          <AlgorithmDisplay
-            algorithm={params.algorithm}
-            activeOps={activeOps}
-            width={180}
-            height={80}
-            color="amber"
-          />
+    <div ref={dropdownRef} style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          background: '#0a0f0a',
+          border: '2px solid #1a1a1a',
+          borderRadius: 4,
+          padding: '4px 8px',
+          boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.8), 0 1px 0 #333',
+        }}
+      >
+        <div style={{ fontSize: 9, color: `${color}88`, fontFamily: 'monospace', letterSpacing: 1, marginRight: 8, textTransform: 'uppercase' }}>
+          {currentPresetObj?.category || 'INIT'}
         </div>
-
-        {/* Algorithm buttons */}
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
-            {FM_ALGORITHMS.map((algo) => (
-              <button
-                key={algo.id}
-                onClick={() => setAlgorithm(algo.id)}
-                style={{
-                  width: 40,
-                  height: 40,
-                  border:
-                    params.algorithm === algo.id
-                      ? '2px solid #ff8c42'
-                      : '2px solid #444',
-                  borderRadius: 6,
-                  background: params.algorithm === algo.id ? '#ff8c42' : '#222',
-                  color: params.algorithm === algo.id ? '#000' : '#888',
-                  cursor: 'pointer',
-                  fontSize: 14,
-                  fontWeight: 'bold',
-                  boxShadow:
-                    params.algorithm === algo.id
-                      ? '0 0 10px #ff8c4444'
-                      : 'none',
-                }}
-              >
-                {algo.id + 1}
-              </button>
-            ))}
-          </div>
-          <div style={{ fontSize: 14, color: '#fff', fontWeight: 'bold' }}>
-            {FM_ALGORITHMS[params.algorithm].name}
-          </div>
-          <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>
-            {FM_ALGORITHMS[params.algorithm].desc}
-          </div>
-          <div style={{ fontSize: 10, color: '#666', marginTop: 4 }}>
-            Carriers: {FM_ALGORITHMS[params.algorithm].carriers.join(', ')}
-          </div>
+        <div style={{ fontSize: 10, color: `${color}66`, fontFamily: 'monospace', marginRight: 6 }}>
+          {String(currentIndex + 1).padStart(2, '0')}
         </div>
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            padding: '2px 8px',
+            fontSize: 12,
+            fontFamily: 'monospace',
+            fontWeight: 'bold',
+            color: color,
+            textShadow: `0 0 8px ${color}66`,
+            cursor: 'pointer',
+            minWidth: 120,
+            textAlign: 'left',
+          }}
+        >
+          {currentPreset || 'INIT'}
+          <span style={{ marginLeft: 8, fontSize: 8 }}>{isOpen ? '▲' : '▼'}</span>
+        </button>
       </div>
+      <button
+        onClick={() => navigatePreset(-1)}
+        disabled={currentIndex <= 0}
+        style={{
+          width: 24, height: 24, border: '1px solid #333', borderRadius: 3,
+          background: currentIndex <= 0 ? '#1a1a1a' : '#252525',
+          color: currentIndex <= 0 ? '#333' : '#888',
+          cursor: currentIndex <= 0 ? 'not-allowed' : 'pointer',
+          fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}
+      >◀</button>
+      <button
+        onClick={() => navigatePreset(1)}
+        disabled={currentIndex >= presets.length - 1}
+        style={{
+          width: 24, height: 24, border: '1px solid #333', borderRadius: 3,
+          background: currentIndex >= presets.length - 1 ? '#1a1a1a' : '#252525',
+          color: currentIndex >= presets.length - 1 ? '#333' : '#888',
+          cursor: currentIndex >= presets.length - 1 ? 'not-allowed' : 'pointer',
+          fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}
+      >▶</button>
+      {isOpen && (
+        <div
+          style={{
+            position: 'absolute', top: '100%', left: 0, marginTop: 4,
+            background: '#1a1a1a', border: '1px solid #333', borderRadius: 6,
+            padding: 8, zIndex: 1000, minWidth: 220, maxHeight: 300, overflowY: 'auto',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+          }}
+        >
+          {Array.from(presetsByCategory.entries()).map(([category, categoryPresets]) => (
+            <div key={category} style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 9, color: '#666', textTransform: 'uppercase', letterSpacing: 1, padding: '4px 8px', borderBottom: '1px solid #333', marginBottom: 4 }}>
+                {category}
+              </div>
+              {categoryPresets.map((preset) => (
+                <button
+                  key={preset.name}
+                  onClick={() => { loadPreset(preset); setIsOpen(false); }}
+                  style={{
+                    display: 'block', width: '100%', padding: '6px 8px', border: 'none', borderRadius: 3,
+                    background: currentPreset === preset.name ? color : 'transparent',
+                    color: currentPreset === preset.name ? '#000' : '#aaa',
+                    cursor: 'pointer', fontSize: 11, textAlign: 'left',
+                    fontWeight: currentPreset === preset.name ? 'bold' : 'normal',
+                  }}
+                >
+                  {preset.name}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -322,67 +382,6 @@ function Section({ title, children }: { title: string; children: React.ReactNode
         {title}
       </h3>
       {children}
-    </div>
-  );
-}
-
-function Fm4OpPresetSelector() {
-  const { loadPreset, currentPreset } = useFm4OpStore();
-  const presetsByCategory = getFm4OpPresetsByCategory();
-
-  return (
-    <div
-      style={{
-        background: '#151515',
-        borderRadius: 8,
-        padding: 12,
-        marginBottom: 12,
-        border: '2px solid #333',
-      }}
-    >
-      <h3
-        style={{
-          margin: '0 0 8px 0',
-          fontSize: 10,
-          color: '#ff8c42',
-          textTransform: 'uppercase',
-          letterSpacing: 1,
-        }}
-      >
-        Presets
-      </h3>
-      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-        {Array.from(presetsByCategory.entries()).map(([category, presets]) => (
-          <div key={category}>
-            <div style={{ fontSize: 10, color: '#666', marginBottom: 4 }}>
-              {category}
-            </div>
-            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-              {presets.map((preset) => (
-                <button
-                  key={preset.name}
-                  onClick={() => loadPreset(preset)}
-                  style={{
-                    padding: '4px 8px',
-                    border:
-                      currentPreset === preset.name
-                        ? '1px solid #ff8c42'
-                        : '1px solid #444',
-                    borderRadius: 4,
-                    background: currentPreset === preset.name ? '#ff8c42' : '#222',
-                    color: currentPreset === preset.name ? '#000' : '#aaa',
-                    cursor: 'pointer',
-                    fontSize: 10,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {preset.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
@@ -439,10 +438,11 @@ function detectChord(midiNotes: number[]): string {
 }
 
 // Info LCD display showing synth status
-function InfoDisplay() {
+function InfoDisplay({ lcdColor = 'green' }: { lcdColor?: LcdColor }) {
   const { currentPreset, activeNotes, params } = useFm4OpStore();
   const noteCount = activeNotes.size;
   const midiNotes = Array.from(activeNotes).sort((a, b) => a - b);
+  const colors = LCD_TEXT_COLORS[lcdColor];
 
   // Get note names for active notes
   const noteNames = midiNotes.map((n) => {
@@ -455,33 +455,33 @@ function InfoDisplay() {
   const chord = detectChord(midiNotes);
 
   return (
-    <LcdScreen width={280} height={90} color="green" pixelSize={2}>
+    <LcdScreen width={280} height={90} color={lcdColor} pixelSize={2}>
       <div
         style={{
           padding: 6,
           fontFamily: 'monospace',
           fontSize: 10,
-          color: '#33ff66',
-          textShadow: '0 0 4px #33ff66',
+          color: colors.fg,
+          textShadow: `0 0 4px ${colors.fg}`,
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
           <span>
-            <span style={{ color: '#33ff6688' }}>PRESET:</span> {currentPreset || 'INIT'}
+            <span style={{ color: colors.fgMuted }}>PRESET:</span> {currentPreset || 'INIT'}
           </span>
         </div>
         <div style={{ marginBottom: 4, display: 'flex', gap: 12 }}>
-          <span><span style={{ color: '#33ff6688' }}>ALG:</span> {params.algorithm + 1}</span>
-          <span><span style={{ color: '#33ff6688' }}>VOL:</span> {Math.round(params.masterVolume * 100)}%</span>
-          <span><span style={{ color: '#33ff6688' }}>FLT:</span> {params.filterEnabled ? 'ON' : 'OFF'}</span>
+          <span><span style={{ color: colors.fgMuted }}>ALG:</span> {params.algorithm + 1}</span>
+          <span><span style={{ color: colors.fgMuted }}>VOL:</span> {Math.round(params.masterVolume * 100)}%</span>
+          <span><span style={{ color: colors.fgMuted }}>FLT:</span> {params.filterEnabled ? 'ON' : 'OFF'}</span>
         </div>
         <div style={{ marginBottom: 4, display: 'flex', alignItems: 'baseline', gap: 8 }}>
-          <span style={{ color: '#33ff6688' }}>CHORD:</span>
-          <span style={{ color: '#66ffaa', fontSize: 16, fontWeight: 'bold' }}>{chord}</span>
-          <span style={{ color: '#33ff6666', fontSize: 9 }}>({noteCount} notes)</span>
+          <span style={{ color: colors.fgMuted }}>CHORD:</span>
+          <span style={{ color: colors.fgAccent, fontSize: 16, fontWeight: 'bold' }}>{chord}</span>
+          <span style={{ color: colors.fgMuted, fontSize: 9 }}>({noteCount} notes)</span>
         </div>
         <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          <span style={{ color: '#33ff6688' }}>NOTES:</span>{' '}
+          <span style={{ color: colors.fgMuted }}>NOTES:</span>{' '}
           {noteCount > 0 ? noteNames.join(' ') : '---'}
         </div>
       </div>
@@ -489,10 +489,56 @@ function InfoDisplay() {
   );
 }
 
-// Main display panel with oscilloscope and spectrum
-function DisplayPanel() {
-  const { getAnalyser, isInitialized } = useFm4OpStore();
+// Keyboard section with pitch/mod wheels
+function KeyboardSection({ lcdColor }: { lcdColor: LcdColor }) {
+  const {
+    pitchBend, modWheel, setPitchBend, setModWheel,
+    noteOn, noteOff, activeNotes, isInitialized, init
+  } = useFm4OpStore();
+
+  return (
+    <div
+      style={{
+        marginBottom: 12,
+        background: '#0a0a0a',
+        borderRadius: 6,
+        border: '1px solid #333',
+        padding: '8px 12px',
+        display: 'flex',
+        alignItems: 'stretch',
+        gap: 12,
+      }}
+    >
+      <PitchModWheels
+        pitchBend={pitchBend}
+        modWheel={modWheel}
+        onPitchBendChange={setPitchBend}
+        onModWheelChange={setModWheel}
+        color={LCD_TEXT_COLORS[lcdColor].fg}
+        modDestination="VIBRATO"
+      />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <Keyboard
+          onNoteOn={noteOn}
+          onNoteOff={noteOff}
+          activeNotes={activeNotes}
+          isInitialized={isInitialized}
+          init={init}
+        />
+      </div>
+    </div>
+  );
+}
+
+// Main display panel with oscilloscope, spectrum, algorithm, and BPM
+function DisplayPanel({ theme }: { theme: Theme }) {
+  const { getAnalyser, isInitialized, params, activeNotes, setAlgorithm } = useFm4OpStore();
+  const { bpm } = useArpStore();
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
+  const lcdMain = theme.lcd.main;
+  const lcdAlt = theme.lcd.alt;
+  const lcdInfo = theme.lcd.info;
+  const activeOps = activeNotes.size > 0 ? [1, 2, 3, 4] : [];
 
   useEffect(() => {
     if (isInitialized) {
@@ -510,39 +556,92 @@ function DisplayPanel() {
         border: '1px solid #333',
       }}
     >
-      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
         {/* Info Display */}
-        <InfoDisplay />
+        <InfoDisplay lcdColor={lcdInfo} />
+
+        {/* Algorithm Display + Buttons */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <div style={{ fontSize: 9, color: LCD_TEXT_COLORS[lcdAlt].fg, letterSpacing: 1 }}>
+              ALGORITHM
+            </div>
+            <div style={{ display: 'flex', gap: 2 }}>
+              {FM_ALGORITHMS.map((algo) => (
+                <button
+                  key={algo.id}
+                  onClick={() => setAlgorithm(algo.id)}
+                  style={{
+                    width: 18,
+                    height: 16,
+                    border: params.algorithm === algo.id ? '1px solid #ff8c42' : '1px solid #444',
+                    borderRadius: 2,
+                    background: params.algorithm === algo.id ? '#ff8c42' : '#222',
+                    color: params.algorithm === algo.id ? '#000' : '#888',
+                    cursor: 'pointer',
+                    fontSize: 9,
+                    fontWeight: 'bold',
+                    padding: 0,
+                  }}
+                >
+                  {algo.id + 1}
+                </button>
+              ))}
+            </div>
+          </div>
+          <AlgorithmDisplay
+            algorithm={params.algorithm}
+            activeOps={activeOps}
+            width={140}
+            height={90}
+            color={lcdAlt}
+          />
+        </div>
 
         {/* Oscilloscope */}
         <div>
-          <div style={{ fontSize: 9, color: '#44aaff', letterSpacing: 1, marginBottom: 4 }}>
+          <div style={{ fontSize: 9, color: LCD_TEXT_COLORS[lcdMain].fg, letterSpacing: 1, marginBottom: 4 }}>
             WAVEFORM
           </div>
-          <WaveformDisplay analyser={analyser} width={180} height={90} color="blue" />
+          <WaveformDisplay analyser={analyser} width={140} height={90} color={lcdMain} />
         </div>
 
         {/* Spectrum Analyzer */}
         <div>
-          <div style={{ fontSize: 9, color: '#ffaa00', letterSpacing: 1, marginBottom: 4 }}>
+          <div style={{ fontSize: 9, color: LCD_TEXT_COLORS[lcdAlt].fg, letterSpacing: 1, marginBottom: 4 }}>
             SPECTRUM
           </div>
-          <SpectrumDisplay analyser={analyser} width={220} height={90} color="amber" barCount={32} />
+          <SpectrumDisplay analyser={analyser} width={180} height={90} color={lcdAlt} barCount={32} />
         </div>
 
         {/* Audio Level Meter */}
         <div>
-          <div style={{ fontSize: 9, color: '#33ff66', letterSpacing: 1, marginBottom: 4 }}>
+          <div style={{ fontSize: 9, color: LCD_TEXT_COLORS[lcdMain].fg, letterSpacing: 1, marginBottom: 4 }}>
             LVL
           </div>
-          <AudioLevelMeter analyser={analyser} width={30} height={90} color="green" />
+          <AudioLevelMeter analyser={analyser} width={30} height={90} color={lcdMain} />
+        </div>
+
+        {/* BPM Display */}
+        <div>
+          <div style={{ fontSize: 9, color: '#ff4444', letterSpacing: 1, marginBottom: 4 }}>
+            BPM
+          </div>
+          <SevenSegmentDisplay value={bpm} digits={3} color="red" />
         </div>
       </div>
     </div>
   );
 }
 
-export function Fm4OpPanel() {
+interface Fm4OpPanelProps {
+  theme?: Theme;
+  onPanic?: () => void;
+}
+
+export function Fm4OpPanel({ theme = THEMES.classic, onPanic }: Fm4OpPanelProps) {
+  const lcdMain = theme.lcd.main;
+  const lcdAlt = theme.lcd.alt;
   const {
     params,
     effectParams,
@@ -568,13 +667,27 @@ export function Fm4OpPanel() {
   return (
     <div
       style={{
-        padding: '12px 20px',
-        maxWidth: 1400,
-        margin: '0 auto',
-        background: 'linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'stretch',
+        padding: '12px 0',
         minHeight: '100vh',
+        background: 'linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%)',
       }}
     >
+      {/* Left Wood Panel */}
+      <WoodPanel side="left" />
+
+      {/* Main FM Synth Content */}
+      <div
+        style={{
+          padding: '12px 20px',
+          maxWidth: 1350,
+          background: 'linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%)',
+          borderTop: '3px solid #444',
+          borderBottom: '3px solid #222',
+        }}
+      >
       {/* Header */}
       <div
         style={{
@@ -584,18 +697,22 @@ export function Fm4OpPanel() {
           marginBottom: 16,
         }}
       >
-        <h2
-          style={{
-            margin: 0,
-            color: '#ff8c42',
-            fontSize: 20,
-            fontWeight: 'bold',
-            textShadow: '0 0 10px #ff8c4244',
-            letterSpacing: 2,
-          }}
-        >
-          4-OP FM SYNTHESIZER
-        </h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <h2
+            style={{
+              margin: 0,
+              color: '#ff8c42',
+              fontSize: 20,
+              fontWeight: 'bold',
+              textShadow: '0 0 10px #ff8c4244',
+              letterSpacing: 2,
+            }}
+          >
+            4-OP FM
+          </h2>
+          {/* Preset selector in header */}
+          <FmPresetSelector color="#ff8c42" />
+        </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button
             onClick={resetParams}
@@ -614,7 +731,7 @@ export function Fm4OpPanel() {
             RESET
           </button>
           <button
-            onClick={panic}
+            onClick={() => { panic(); onPanic?.(); }}
             style={{
               background: 'linear-gradient(180deg, #c44 0%, #922 100%)',
               border: '1px solid #f66',
@@ -633,13 +750,10 @@ export function Fm4OpPanel() {
       </div>
 
       {/* Main Display Panel */}
-      <DisplayPanel />
+      <DisplayPanel theme={theme} />
 
-      {/* Preset Selector */}
-      <Fm4OpPresetSelector />
-
-      {/* Algorithm Selector */}
-      <AlgorithmSelector />
+      {/* Keyboard Section - Full width right after display */}
+      <KeyboardSection lcdColor={lcdMain} />
 
       {/* Operators */}
       <div
@@ -656,6 +770,7 @@ export function Fm4OpPanel() {
             opIndex={opIndex}
             isCarrier={carriers.includes(opIndex + 1)}
             showFeedback={opIndex === 3}
+            lcdColor={carriers.includes(opIndex + 1) ? lcdMain : lcdAlt}
           />
         ))}
       </div>
@@ -828,6 +943,10 @@ export function Fm4OpPanel() {
           </div>
         </Section>
       </div>
+      </div>
+
+      {/* Right Wood Panel */}
+      <WoodPanel side="right" />
     </div>
   );
 }

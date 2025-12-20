@@ -49,6 +49,9 @@ export const factoryPresets: Preset[] = [
     effects: {
       reverbMix: 0.1,
       reverbDecay: 1.0,
+      reverbPreDelay: 0.02,
+      reverbDamping: 0.5,
+      
       delayTime: 0.0,
       delayFeedback: 0.0,
       delayMix: 0.0,
@@ -117,6 +120,9 @@ export const factoryPresets: Preset[] = [
     effects: {
       reverbMix: 0.05,
       reverbDecay: 0.8,
+      reverbPreDelay: 0.02,
+      reverbDamping: 0.5,
+      
       delayTime: 0.0,
       delayFeedback: 0.0,
       delayMix: 0.0,
@@ -156,6 +162,9 @@ export const factoryPresets: Preset[] = [
     effects: {
       reverbMix: 0.25,
       reverbDecay: 1.5,
+      reverbPreDelay: 0.02,
+      reverbDamping: 0.5,
+      
       delayTime: 0.33,
       delayFeedback: 0.3,
       delayMix: 0.2,
@@ -193,6 +202,9 @@ export const factoryPresets: Preset[] = [
     effects: {
       reverbMix: 0.3,
       reverbDecay: 2.0,
+      reverbPreDelay: 0.02,
+      reverbDamping: 0.5,
+      
       delayTime: 0.25,
       delayFeedback: 0.4,
       delayMix: 0.25,
@@ -230,6 +242,8 @@ export const factoryPresets: Preset[] = [
     effects: {
       reverbMix: 0.2,
       reverbDecay: 1.5,
+      reverbPreDelay: 0.02,
+      reverbDamping: 0.5,
       delayTime: 0.25,
       delayFeedback: 0.3,
       delayMix: 0.15,
@@ -269,6 +283,8 @@ export const factoryPresets: Preset[] = [
     effects: {
       reverbMix: 0.5,
       reverbDecay: 3.0,
+      reverbPreDelay: 0.02,
+      reverbDamping: 0.5,
       delayTime: 0.4,
       delayFeedback: 0.3,
       delayMix: 0.15,
@@ -306,6 +322,8 @@ export const factoryPresets: Preset[] = [
     effects: {
       reverbMix: 0.45,
       reverbDecay: 2.5,
+      reverbPreDelay: 0.02,
+      reverbDamping: 0.5,
       delayTime: 0.0,
       delayFeedback: 0.0,
       delayMix: 0.0,
@@ -343,6 +361,8 @@ export const factoryPresets: Preset[] = [
     effects: {
       reverbMix: 0.6,
       reverbDecay: 4.0,
+      reverbPreDelay: 0.02,
+      reverbDamping: 0.5,
       delayTime: 0.5,
       delayFeedback: 0.5,
       delayMix: 0.3,
@@ -382,6 +402,8 @@ export const factoryPresets: Preset[] = [
     effects: {
       reverbMix: 0.35,
       reverbDecay: 1.8,
+      reverbPreDelay: 0.02,
+      reverbDamping: 0.5,
       delayTime: 0.25,
       delayFeedback: 0.25,
       delayMix: 0.2,
@@ -419,6 +441,8 @@ export const factoryPresets: Preset[] = [
     effects: {
       reverbMix: 0.3,
       reverbDecay: 2.0,
+      reverbPreDelay: 0.02,
+      reverbDamping: 0.5,
       delayTime: 0.0,
       delayFeedback: 0.0,
       delayMix: 0.0,
@@ -458,6 +482,8 @@ export const factoryPresets: Preset[] = [
     effects: {
       reverbMix: 0.25,
       reverbDecay: 1.5,
+      reverbPreDelay: 0.02,
+      reverbDamping: 0.5,
       delayTime: 0.0,
       delayFeedback: 0.0,
       delayMix: 0.0,
@@ -497,6 +523,8 @@ export const factoryPresets: Preset[] = [
     effects: {
       reverbMix: 0.7,
       reverbDecay: 4.5,
+      reverbPreDelay: 0.02,
+      reverbDamping: 0.5,
       delayTime: 0.33,
       delayFeedback: 0.5,
       delayMix: 0.4,
@@ -534,6 +562,8 @@ export const factoryPresets: Preset[] = [
     effects: {
       reverbMix: 0.8,
       reverbDecay: 6.0,
+      reverbPreDelay: 0.02,
+      reverbDamping: 0.5,
       delayTime: 0.66,
       delayFeedback: 0.6,
       delayMix: 0.5,
@@ -571,6 +601,8 @@ export const factoryPresets: Preset[] = [
     effects: {
       reverbMix: 0.6,
       reverbDecay: 4.0,
+      reverbPreDelay: 0.02,
+      reverbDamping: 0.5,
       delayTime: 0.33,
       delayFeedback: 0.4,
       delayMix: 0.3,

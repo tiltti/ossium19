@@ -22,3 +22,6 @@ Cargo.lock
 # AI assistant config files - do not commit
 *.ai-config.md
 .ai-assistant/
+
+# Local implementation plans
+IMPLEMENTATION_PLAN.md

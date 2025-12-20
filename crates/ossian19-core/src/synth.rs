@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::filter::FilterType;
-use crate::oscillator::Waveform;
+use crate::oscillator::{Waveform, SubWaveform};
 use crate::voice::VoiceManager;
 
 /// Main synthesizer parameters (serializable for presets)
@@ -16,8 +16,15 @@ pub struct SynthParams {
     pub osc2_detune: f32, // cents
     pub osc2_level: f32,
 
-    // Sub oscillator (octave below osc1)
+    // PWM (Juno-6 style) - applies to Square waveforms
+    pub pulse_width: f32,    // 0.0-1.0, default 0.5
+    pub pwm_depth: f32,      // LFO modulation depth 0-1
+    pub pwm_rate: f32,       // LFO rate in Hz
+
+    // Sub oscillator (Juno-6 style)
     pub sub_level: f32,
+    pub sub_waveform: SubWaveform, // Sine or Square
+    pub sub_octave: i8,            // -1 or -2
 
     // Noise
     pub noise_level: f32,
@@ -26,7 +33,10 @@ pub struct SynthParams {
     pub fm_amount: f32,  // 0 = off (subtractive), 1 = full FM
     pub fm_ratio: f32,   // Modulator:Carrier frequency ratio
 
-    // Filter
+    // High-pass filter (Juno-6 style, before LPF)
+    pub hpf_cutoff: f32, // 20-2000 Hz, non-resonant
+
+    // Low-pass filter
     pub filter_type: FilterType,
     pub filter_cutoff: f32,
     pub filter_resonance: f32,
@@ -56,10 +66,19 @@ impl Default for SynthParams {
             osc2_waveform: Waveform::Square,  // Different from osc1
             osc2_detune: 7.0, // Slight detune for fatness
             osc2_level: 0.0,  // Off by default
-            sub_level: 0.0,   // Off by default
-            noise_level: 0.0, // Off by default
-            fm_amount: 0.0,   // FM off by default (subtractive mode)
-            fm_ratio: 2.0,    // Classic 2:1 ratio
+            // PWM (Juno-6 style)
+            pulse_width: 0.5,  // Square wave default
+            pwm_depth: 0.0,    // No modulation by default
+            pwm_rate: 1.0,     // 1 Hz LFO rate
+            // Sub oscillator (Juno-6 style)
+            sub_level: 0.0,    // Off by default
+            sub_waveform: SubWaveform::Square,
+            sub_octave: -1,    // One octave below
+            noise_level: 0.0,  // Off by default
+            fm_amount: 0.0,    // FM off by default (subtractive mode)
+            fm_ratio: 2.0,     // Classic 2:1 ratio
+            // HPF (Juno-6 style)
+            hpf_cutoff: 20.0,  // Essentially off (lowest)
             filter_type: FilterType::LowPass,
             filter_cutoff: 5000.0,
             filter_resonance: 0.3,
@@ -284,6 +303,42 @@ impl Synth {
         self.voice_manager.set_fm_ratio(ratio);
     }
 
+    // === Juno-6 style PWM ===
+
+    pub fn set_pulse_width(&mut self, width: f32) {
+        self.params.pulse_width = width.clamp(0.01, 0.99);
+        self.voice_manager.set_pulse_width(width);
+    }
+
+    pub fn set_pwm_depth(&mut self, depth: f32) {
+        self.params.pwm_depth = depth.clamp(0.0, 1.0);
+        self.voice_manager.set_pwm_depth(depth);
+    }
+
+    pub fn set_pwm_rate(&mut self, rate: f32) {
+        self.params.pwm_rate = rate.clamp(0.1, 20.0);
+        self.voice_manager.set_pwm_rate(rate);
+    }
+
+    // === Juno-6 style Sub oscillator ===
+
+    pub fn set_sub_waveform(&mut self, waveform: SubWaveform) {
+        self.params.sub_waveform = waveform;
+        self.voice_manager.set_sub_waveform(waveform);
+    }
+
+    pub fn set_sub_octave(&mut self, octave: i8) {
+        self.params.sub_octave = octave.clamp(-2, -1);
+        self.voice_manager.set_sub_octave(octave);
+    }
+
+    // === Juno-6 style HPF ===
+
+    pub fn set_hpf_cutoff(&mut self, cutoff: f32) {
+        self.params.hpf_cutoff = cutoff.clamp(20.0, 2000.0);
+        self.voice_manager.set_hpf_cutoff(cutoff);
+    }
+
     pub fn set_filter_cutoff(&mut self, cutoff: f32) {
         self.params.filter_cutoff = cutoff.clamp(20.0, 20000.0);
     }
@@ -316,6 +371,16 @@ impl Synth {
 
     pub fn set_master_volume(&mut self, volume: f32) {
         self.params.master_volume = volume.clamp(0.0, 1.0);
+    }
+
+    /// Set pitch bend (-1 to 1, where 1 = +pitch_bend_range semitones)
+    pub fn set_pitch_bend(&mut self, value: f32) {
+        self.voice_manager.set_pitch_bend(value);
+    }
+
+    /// Set pitch bend range in semitones (typically 2, 12, or 24)
+    pub fn set_pitch_bend_range(&mut self, semitones: f32) {
+        self.voice_manager.set_pitch_bend_range(semitones);
     }
 }
 

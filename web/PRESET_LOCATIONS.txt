@@ -1,0 +1,53 @@
+================================================================================
+DX7 LEGENDARY PRESETS - BANK LOCATIONS
+================================================================================
+
+All 16 target presets found and extracted from ROM cartridge SYX files.
+
+KEYS (Electric Pianos)
+--------------------------------------------------------------------------------
+E.PIANO 1       ROM1A #11 (Algorithm 5)  ✓ The most famous DX7 sound
+E.PIANO 2       ROM1B #3  (Algorithm 12) ✓ Brighter, more percussive
+E.PIANO 3       ROM1B #4  (Algorithm 5)  ✓ Warm variation
+E.PIANO 4       ROM1B #5  (Algorithm 5)  ✓ Another classic
+
+BELLS
+--------------------------------------------------------------------------------
+TUB BELLS       ROM1A #26 (Algorithm 1)  ✓ Tubular bells
+BELLS           ROM4A #21 (Algorithm 5)  ✓ Crystal bells
+
+MALLETS
+--------------------------------------------------------------------------------
+MARIMBA         ROM1A #22 (Algorithm 12) ✓ Wooden marimba
+VIBE 1          ROM1A #21 (Algorithm 1)  ✓ Vibraphone
+
+PLUCKS
+--------------------------------------------------------------------------------
+CLAV 1          ROM1A #20 (Algorithm 1)  ✓ Clavinet
+FUNK CLAV       ROM3B #9  (Algorithm 1)  ✓ Funkier clav
+
+BASS
+--------------------------------------------------------------------------------
+BASS 1          ROM1A #15 (Algorithm 1)  ✓ Standard bass
+BASS 2          ROM1A #16 (Algorithm 1)  ✓ Alternative bass
+
+LEADS
+--------------------------------------------------------------------------------
+SYN-LEAD 1      ROM1A #14 (Algorithm 4)  ✓ Synth lead
+SYN-LEAD 2      ROM2B #1  (Algorithm 1)  ✓ Alternative lead
+
+PADS
+--------------------------------------------------------------------------------
+STRINGS 1       ROM1A #4  (Algorithm 5)  ✓ String pad
+
+BRASS
+--------------------------------------------------------------------------------
+BRASS 1         ROM1A #1  (Algorithm 22) ✓ Synth brass
+
+================================================================================
+NOTES:
+- ROM1A contains the most presets (10 of 16) - primary factory bank
+- ROM1B contains the E.Piano variations (3 presets)
+- All presets successfully converted to 4-operator FM format
+- See DX7_EXTRACTION_SUMMARY.md for technical details
+================================================================================

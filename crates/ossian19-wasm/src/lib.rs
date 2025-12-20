@@ -5,6 +5,7 @@
 
 use ossian19_core::{LfoWaveform, Synth, SynthParams, Waveform, Fm4OpVoiceManager, FmAlgorithm};
 use wasm_bindgen::prelude::*;
+use web_sys::console;
 
 // Initialize panic hook for better error messages in browser console
 #[wasm_bindgen(start)]
@@ -172,6 +173,20 @@ impl Ossian19Synth {
         self.synth.set_master_volume(volume);
     }
 
+    // === Pitch Bend ===
+
+    /// Set pitch bend value (-1 to 1)
+    #[wasm_bindgen(js_name = setPitchBend)]
+    pub fn set_pitch_bend(&mut self, value: f32) {
+        self.synth.set_pitch_bend(value);
+    }
+
+    /// Set pitch bend range in semitones (default: 2)
+    #[wasm_bindgen(js_name = setPitchBendRange)]
+    pub fn set_pitch_bend_range(&mut self, semitones: f32) {
+        self.synth.set_pitch_bend_range(semitones);
+    }
+
     // === Preset Management ===
 
     /// Get current parameters as JSON
@@ -233,7 +248,6 @@ pub fn freq_to_midi(freq: f32) -> u8 {
 #[wasm_bindgen]
 pub struct Ossian19Fm4Op {
     voice_manager: Fm4OpVoiceManager,
-    master_volume: f32,
 }
 
 #[wasm_bindgen]
@@ -243,7 +257,6 @@ impl Ossian19Fm4Op {
     pub fn new(sample_rate: f32, num_voices: u32) -> Self {
         Self {
             voice_manager: Fm4OpVoiceManager::new(num_voices as usize, sample_rate),
-            master_volume: 0.7,
         }
     }
 
@@ -257,7 +270,7 @@ impl Ossian19Fm4Op {
     #[wasm_bindgen]
     pub fn process(&mut self, buffer: &mut [f32]) {
         for sample in buffer.iter_mut() {
-            *sample = self.voice_manager.tick() * self.master_volume;
+            *sample = self.voice_manager.tick();
         }
     }
 
@@ -265,7 +278,7 @@ impl Ossian19Fm4Op {
     #[wasm_bindgen(js_name = processStereo)]
     pub fn process_stereo(&mut self, left: &mut [f32], right: &mut [f32]) {
         for (l, r) in left.iter_mut().zip(right.iter_mut()) {
-            let sample = self.voice_manager.tick() * self.master_volume;
+            let sample = self.voice_manager.tick();
             *l = sample;
             *r = sample;
         }
@@ -300,6 +313,7 @@ impl Ossian19Fm4Op {
     /// Set FM algorithm (0-7)
     #[wasm_bindgen(js_name = setAlgorithm)]
     pub fn set_algorithm(&mut self, algo: u8) {
+        console::log_1(&format!("[WASM FM] setAlgorithm: algo={}", algo).into());
         self.voice_manager.set_algorithm(FmAlgorithm::from_u8(algo));
     }
 
@@ -315,7 +329,80 @@ impl Ossian19Fm4Op {
     /// Set operator level (0-1)
     #[wasm_bindgen(js_name = setOpLevel)]
     pub fn set_op_level(&mut self, op: u8, level: f32) {
+        console::log_1(&format!("[WASM FM] setOpLevel: op={}, level={}", op, level).into());
         self.voice_manager.set_op_level(op as usize, level);
+        // Verify the set worked
+        let stored = self.voice_manager.get_op_level(op as usize);
+        console::log_1(&format!("[WASM FM] Verified level stored: {}", stored).into());
+    }
+
+    /// Get operator level (for debugging)
+    #[wasm_bindgen(js_name = getOpLevel)]
+    pub fn get_op_level(&self, op: u8) -> f32 {
+        self.voice_manager.get_op_level(op as usize)
+    }
+
+    /// Get operator ratio (for debugging)
+    #[wasm_bindgen(js_name = getOpRatio)]
+    pub fn get_op_ratio(&self, op: u8) -> f32 {
+        self.voice_manager.get_op_ratio(op as usize)
+    }
+
+    /// Get current algorithm (for debugging)
+    #[wasm_bindgen(js_name = getAlgorithm)]
+    pub fn get_algorithm(&self) -> u8 {
+        self.voice_manager.get_algorithm()
+    }
+
+    /// Dump all operator levels (for debugging)
+    #[wasm_bindgen(js_name = debugDump)]
+    pub fn debug_dump(&self) -> String {
+        format!(
+            "Algo: {}, Levels: [{:.2}, {:.2}, {:.2}, {:.2}], Ratios: [{:.2}, {:.2}, {:.2}, {:.2}]",
+            self.voice_manager.get_algorithm(),
+            self.voice_manager.get_op_level(0),
+            self.voice_manager.get_op_level(1),
+            self.voice_manager.get_op_level(2),
+            self.voice_manager.get_op_level(3),
+            self.voice_manager.get_op_ratio(0),
+            self.voice_manager.get_op_ratio(1),
+            self.voice_manager.get_op_ratio(2),
+            self.voice_manager.get_op_ratio(3),
+        )
+    }
+
+    /// Test: trigger a note, generate a few samples, and log what's happening
+    #[wasm_bindgen(js_name = debugTestNote)]
+    pub fn debug_test_note(&mut self) -> f32 {
+        // Log current state
+        console::log_1(&format!("=== DEBUG TEST NOTE ===").into());
+        console::log_1(&format!("State before note: {}", self.debug_dump()).into());
+        console::log_1(&format!("Active voices: {}", self.voice_manager.active_voice_count()).into());
+
+        // Trigger note 60 (middle C)
+        self.voice_manager.note_on(60, 0.8);
+        console::log_1(&format!("Triggered note 60, velocity 0.8").into());
+        console::log_1(&format!("Active voices after trigger: {}", self.voice_manager.active_voice_count()).into());
+
+        // Generate 10 samples and log
+        let mut max_output = 0.0f32;
+        for i in 0..10 {
+            let sample = self.voice_manager.tick();
+            if sample.abs() > max_output {
+                max_output = sample.abs();
+            }
+            if i < 3 {
+                console::log_1(&format!("Sample {}: {:.6}", i, sample).into());
+            }
+        }
+
+        console::log_1(&format!("Max output in 10 samples: {:.6}", max_output).into());
+        console::log_1(&format!("State after: {}", self.debug_dump()).into());
+
+        // Release note
+        self.voice_manager.note_off(60);
+
+        max_output
     }
 
     /// Set operator detune in cents (-100 to +100)
@@ -384,7 +471,21 @@ impl Ossian19Fm4Op {
 
     #[wasm_bindgen(js_name = setMasterVolume)]
     pub fn set_master_volume(&mut self, volume: f32) {
-        self.master_volume = volume.clamp(0.0, 1.0);
+        self.voice_manager.set_master_volume(volume);
+    }
+
+    // === Vibrato Controls ===
+
+    /// Set vibrato depth in cents (0-100, typical range 0-50)
+    #[wasm_bindgen(js_name = setVibratoDepth)]
+    pub fn set_vibrato_depth(&mut self, depth: f32) {
+        self.voice_manager.set_vibrato_depth(depth);
+    }
+
+    /// Set vibrato rate in Hz (0.1-20, typical range 3-8)
+    #[wasm_bindgen(js_name = setVibratoRate)]
+    pub fn set_vibrato_rate(&mut self, rate: f32) {
+        self.voice_manager.set_vibrato_rate(rate);
     }
 
     // === Convenience methods for bulk updates ===
