@@ -44,6 +44,7 @@ export const factoryPresets: Preset[] = [
       filterDecay: 0.2,
       filterSustain: 0.2,
       filterRelease: 0.1,
+      filterSlope: 2,
       masterVolume: 0.8,
     },
     effects: {
@@ -84,6 +85,7 @@ export const factoryPresets: Preset[] = [
       filterDecay: 0.1,
       filterSustain: 0.8,
       filterRelease: 0.2,
+      filterSlope: 2,
       masterVolume: 0.9,
     },
     effects: {
@@ -115,6 +117,7 @@ export const factoryPresets: Preset[] = [
       filterDecay: 0.15,
       filterSustain: 0.2,
       filterRelease: 0.1,
+      filterSlope: 2,
       masterVolume: 0.75,
     },
     effects: {
@@ -157,6 +160,7 @@ export const factoryPresets: Preset[] = [
       filterDecay: 0.3,
       filterSustain: 0.4,
       filterRelease: 0.2,
+      filterSlope: 2,
       masterVolume: 0.7,
     },
     effects: {
@@ -197,6 +201,7 @@ export const factoryPresets: Preset[] = [
       filterDecay: 0.2,
       filterSustain: 0.6,
       filterRelease: 0.15,
+      filterSlope: 2,
       masterVolume: 0.6,
     },
     effects: {
@@ -237,6 +242,7 @@ export const factoryPresets: Preset[] = [
       filterDecay: 0.2,
       filterSustain: 0.4,
       filterRelease: 0.2,
+      filterSlope: 2,
       masterVolume: 0.65,
     },
     effects: {
@@ -278,6 +284,7 @@ export const factoryPresets: Preset[] = [
       filterDecay: 0.5,
       filterSustain: 0.6,
       filterRelease: 0.8,
+      filterSlope: 2,
       masterVolume: 0.6,
     },
     effects: {
@@ -317,6 +324,7 @@ export const factoryPresets: Preset[] = [
       filterDecay: 0.3,
       filterSustain: 0.7,
       filterRelease: 0.8,
+      filterSlope: 2,
       masterVolume: 0.6,
     },
     effects: {
@@ -356,6 +364,7 @@ export const factoryPresets: Preset[] = [
       filterDecay: 1.0,
       filterSustain: 0.3,
       filterRelease: 1.5,
+      filterSlope: 2,
       masterVolume: 0.5,
     },
     effects: {
@@ -397,6 +406,7 @@ export const factoryPresets: Preset[] = [
       filterDecay: 0.2,
       filterSustain: 0.1,
       filterRelease: 0.15,
+      filterSlope: 2,
       masterVolume: 0.7,
     },
     effects: {
@@ -436,6 +446,7 @@ export const factoryPresets: Preset[] = [
       filterDecay: 0.5,
       filterSustain: 0.3,
       filterRelease: 0.3,
+      filterSlope: 2,
       masterVolume: 0.7,
     },
     effects: {
@@ -477,6 +488,7 @@ export const factoryPresets: Preset[] = [
       filterDecay: 0.1,
       filterSustain: 1.0,
       filterRelease: 0.1,
+      filterSlope: 2,
       masterVolume: 0.6,
     },
     effects: {
@@ -518,6 +530,7 @@ export const factoryPresets: Preset[] = [
       filterDecay: 0.3,
       filterSustain: 0.5,
       filterRelease: 1.0,
+      filterSlope: 2,
       masterVolume: 0.5,
     },
     effects: {
@@ -557,6 +570,7 @@ export const factoryPresets: Preset[] = [
       filterDecay: 2.0,
       filterSustain: 0.3,
       filterRelease: 2.0,
+      filterSlope: 2,
       masterVolume: 0.4,
     },
     effects: {
@@ -596,6 +610,7 @@ export const factoryPresets: Preset[] = [
       filterDecay: 2.0,
       filterSustain: 0.1,
       filterRelease: 1.5,
+      filterSlope: 2,
       masterVolume: 0.5,
     },
     effects: {

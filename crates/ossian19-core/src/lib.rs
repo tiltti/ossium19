@@ -20,7 +20,10 @@ pub mod voice;
 // Re-export main types
 pub use envelope::Envelope;
 pub use filter::{FilterType, FilterSlope, LadderFilter, StateVariableFilter};
-pub use fm::{FmSynth, Fm4OpSynth, Fm4OpVoice, Fm4OpVoiceManager, FmAlgorithm, FmOperator};
+pub use fm::{
+    FmSynth, Fm4OpSynth, Fm4OpVoice, Fm4OpVoiceManager, FmAlgorithm, FmOperator,
+    Fm6OpVoice, Fm6OpVoiceManager, Dx7Algorithm,
+};
 pub use lfo::{Lfo, LfoWaveform};
 pub use oscillator::{Oscillator, Waveform, SubWaveform};
 pub use synth::{Synth, SynthParams};

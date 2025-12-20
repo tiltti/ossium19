@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useSynthStore } from './stores/synth-store';
 import { useFm4OpStore } from './stores/fm4op-store';
+import { useFm6OpStore } from './stores/fm6op-store';
 import { useDrumStore } from './stores/drum-store';
 import { SynthPanel } from './components/SynthPanel';
 import { Fm4OpPanel } from './components/Fm4OpPanel';
+import { Fm6OpPanel } from './components/Fm6OpPanel';
 import { SongPlayer } from './components/SongPlayer';
 import { DrumMachine } from './components/DrumMachine';
 import { SettingsPanel } from './components/SettingsPanel';
 import { THEMES, ThemeName } from './theme';
 
-type AppMode = 'subtractive' | 'fm4op' | 'drums' | 'settings';
+type AppMode = 'subtractive' | 'fm4op' | 'fm6op' | 'drums' | 'settings';
 export type ColorTheme = ThemeName;
 
 export const COLOR_THEMES = THEMES;
@@ -19,26 +21,28 @@ export function App() {
   const [colorTheme, setColorTheme] = useState<ColorTheme>('classic');
 
   const { isInitialized: subIsInit, init: subInit, noteOn: subNoteOn, noteOff: subNoteOff, panic: subPanic } = useSynthStore();
-  const { isInitialized: fmIsInit, init: fmInit, noteOn: fmNoteOn, noteOff: fmNoteOff, panic: fmPanic } = useFm4OpStore();
+  const { isInitialized: fm4IsInit, init: fm4Init, noteOn: fm4NoteOn, noteOff: fm4NoteOff, panic: fm4Panic } = useFm4OpStore();
+  const { isInitialized: fm6IsInit, init: fm6Init, noteOn: fm6NoteOn, noteOff: fm6NoteOff, panic: fm6Panic } = useFm6OpStore();
   const { isPlaying: drumIsPlaying, panic: drumPanic } = useDrumStore();
 
   // Global panic - stops ALL audio (synth + drums)
   const handleGlobalPanic = () => {
     subPanic();
-    fmPanic();
+    fm4Panic();
+    fm6Panic();
     drumPanic();
   };
 
   // For synth modes, determine which is active
-  const synthMode = appMode === 'fm4op' ? 'fm4op' : 'subtractive';
-  const isInitialized = synthMode === 'subtractive' ? subIsInit : fmIsInit;
+  const synthMode = appMode === 'fm6op' ? 'fm6op' : appMode === 'fm4op' ? 'fm4op' : 'subtractive';
+  const isInitialized = synthMode === 'subtractive' ? subIsInit : synthMode === 'fm4op' ? fm4IsInit : fm6IsInit;
 
   const theme = COLOR_THEMES[colorTheme];
 
   // Accent color based on mode
   const getAccentColor = () => {
     if (appMode === 'drums') return theme.secondary;
-    if (appMode === 'fm4op') return theme.secondary;
+    if (appMode === 'fm4op' || appMode === 'fm6op') return theme.secondary;
     return theme.primary;
   };
   const accentColor = getAccentColor();
@@ -47,8 +51,10 @@ export function App() {
     const handleFirstInteraction = async () => {
       if (synthMode === 'subtractive' && !subIsInit) {
         await subInit();
-      } else if (synthMode === 'fm4op' && !fmIsInit) {
-        await fmInit();
+      } else if (synthMode === 'fm4op' && !fm4IsInit) {
+        await fm4Init();
+      } else if (synthMode === 'fm6op' && !fm6IsInit) {
+        await fm6Init();
       }
       window.removeEventListener('click', handleFirstInteraction);
       window.removeEventListener('keydown', handleFirstInteraction);
@@ -61,34 +67,40 @@ export function App() {
       window.removeEventListener('click', handleFirstInteraction);
       window.removeEventListener('keydown', handleFirstInteraction);
     };
-  }, [synthMode, subIsInit, fmIsInit, subInit, fmInit]);
+  }, [synthMode, subIsInit, fm4IsInit, fm6IsInit, subInit, fm4Init, fm6Init]);
 
   useEffect(() => {
     const initCurrentMode = async () => {
       if (synthMode === 'subtractive' && !subIsInit) {
         await subInit();
-      } else if (synthMode === 'fm4op' && !fmIsInit) {
-        await fmInit();
+      } else if (synthMode === 'fm4op' && !fm4IsInit) {
+        await fm4Init();
+      } else if (synthMode === 'fm6op' && !fm6IsInit) {
+        await fm6Init();
       }
     };
-    if (appMode !== 'drums') {
+    if (appMode !== 'drums' && appMode !== 'settings') {
       initCurrentMode();
     }
-  }, [appMode, synthMode, subIsInit, fmIsInit, subInit, fmInit]);
+  }, [appMode, synthMode, subIsInit, fm4IsInit, fm6IsInit, subInit, fm4Init, fm6Init]);
 
   const handleNoteOn = (note: number, velocity: number) => {
     if (synthMode === 'subtractive') {
       subNoteOn(note, velocity);
+    } else if (synthMode === 'fm4op') {
+      fm4NoteOn(note, velocity);
     } else {
-      fmNoteOn(note, velocity);
+      fm6NoteOn(note, velocity);
     }
   };
 
   const handleNoteOff = (note: number) => {
     if (synthMode === 'subtractive') {
       subNoteOff(note);
+    } else if (synthMode === 'fm4op') {
+      fm4NoteOff(note);
     } else {
-      fmNoteOff(note);
+      fm6NoteOff(note);
     }
   };
 
@@ -184,7 +196,7 @@ export function App() {
             <button
               onClick={() => setAppMode('fm4op')}
               style={{
-                padding: '8px 20px',
+                padding: '8px 16px',
                 border: appMode === 'fm4op' ? `2px solid ${theme.secondary}` : `2px solid ${theme.border}`,
                 borderRadius: theme.button.borderRadius,
                 background: appMode === 'fm4op' ? theme.secondary : 'transparent',
@@ -197,6 +209,23 @@ export function App() {
               }}
             >
               4-OP FM
+            </button>
+            <button
+              onClick={() => setAppMode('fm6op')}
+              style={{
+                padding: '8px 16px',
+                border: appMode === 'fm6op' ? `2px solid ${theme.secondary}` : `2px solid ${theme.border}`,
+                borderRadius: theme.button.borderRadius,
+                background: appMode === 'fm6op' ? theme.secondary : 'transparent',
+                color: appMode === 'fm6op' ? '#000' : theme.textMuted,
+                cursor: 'pointer',
+                fontSize: 11,
+                fontWeight: 'bold',
+                letterSpacing: 1,
+                transition: 'all 0.15s',
+              }}
+            >
+              6-OP FM
             </button>
             <button
               onClick={() => setAppMode('drums')}
@@ -257,10 +286,14 @@ export function App() {
       ) : (
         <>
           {/* Synth Panel - switches based on mode */}
-          {appMode === 'subtractive' ? (
+          {appMode === 'subtractive' && (
             <SynthPanel theme={theme} onPanic={handleGlobalPanic} />
-          ) : (
+          )}
+          {appMode === 'fm4op' && (
             <Fm4OpPanel theme={theme} onPanic={handleGlobalPanic} />
+          )}
+          {appMode === 'fm6op' && (
+            <Fm6OpPanel theme={theme} onPanic={handleGlobalPanic} />
           )}
         </>
       )}

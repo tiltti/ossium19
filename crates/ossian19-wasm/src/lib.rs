@@ -3,7 +3,11 @@
 //! This crate provides JavaScript/TypeScript bindings for the Ossian-19 synth engine
 //! to be used with Web Audio API's AudioWorklet.
 
-use ossian19_core::{LfoWaveform, Synth, SynthParams, Waveform, Fm4OpVoiceManager, FmAlgorithm};
+use ossian19_core::{
+    LfoWaveform, Synth, SynthParams, Waveform,
+    Fm4OpVoiceManager, FmAlgorithm,
+    Fm6OpVoiceManager, Dx7Algorithm,
+};
 use wasm_bindgen::prelude::*;
 use web_sys::console;
 
@@ -519,5 +523,237 @@ impl Ossian19Fm4Op {
         self.voice_manager.set_op_sustain(idx, sustain);
         self.voice_manager.set_op_release(idx, release);
         self.voice_manager.set_op_feedback(idx, feedback);
+    }
+}
+
+// =============================================================================
+// 6-Operator FM Synthesizer (DX7-style, 32 algorithms)
+// =============================================================================
+
+/// JavaScript-accessible 6-operator FM synthesizer (DX7-style)
+#[wasm_bindgen]
+pub struct Ossian19Fm6Op {
+    voice_manager: Fm6OpVoiceManager,
+}
+
+#[wasm_bindgen]
+impl Ossian19Fm6Op {
+    /// Create a new 6-op FM synthesizer
+    #[wasm_bindgen(constructor)]
+    pub fn new(sample_rate: f32, num_voices: u32) -> Self {
+        Self {
+            voice_manager: Fm6OpVoiceManager::new(num_voices as usize, sample_rate),
+        }
+    }
+
+    /// Process mono audio
+    #[wasm_bindgen]
+    pub fn process(&mut self, buffer: &mut [f32]) {
+        for sample in buffer.iter_mut() {
+            *sample = self.voice_manager.tick();
+        }
+    }
+
+    /// Process stereo audio (mono->stereo)
+    #[wasm_bindgen(js_name = processStereo)]
+    pub fn process_stereo(&mut self, left: &mut [f32], right: &mut [f32]) {
+        for (l, r) in left.iter_mut().zip(right.iter_mut()) {
+            let sample = self.voice_manager.tick();
+            *l = sample;
+            *r = sample;
+        }
+    }
+
+    /// Note on
+    #[wasm_bindgen(js_name = noteOn)]
+    pub fn note_on(&mut self, note: u8, velocity: u8) {
+        self.voice_manager.note_on(note, velocity as f32 / 127.0);
+    }
+
+    /// Note off
+    #[wasm_bindgen(js_name = noteOff)]
+    pub fn note_off(&mut self, note: u8) {
+        self.voice_manager.note_off(note);
+    }
+
+    /// Panic - stop all voices
+    #[wasm_bindgen]
+    pub fn panic(&mut self) {
+        self.voice_manager.panic();
+    }
+
+    /// Get active voice count
+    #[wasm_bindgen(js_name = activeVoiceCount)]
+    pub fn active_voice_count(&self) -> usize {
+        self.voice_manager.active_voice_count()
+    }
+
+    // === Algorithm (0-31 for DX7's 32 algorithms) ===
+
+    /// Set DX7 algorithm (0-31)
+    #[wasm_bindgen(js_name = setAlgorithm)]
+    pub fn set_algorithm(&mut self, algo: u8) {
+        self.voice_manager.set_algorithm(Dx7Algorithm::from_u8(algo));
+    }
+
+    /// Get current algorithm
+    #[wasm_bindgen(js_name = getAlgorithm)]
+    pub fn get_algorithm(&self) -> u8 {
+        self.voice_manager.get_algorithm()
+    }
+
+    // === Operator Controls (0-5 for OP1-OP6) ===
+
+    /// Set operator ratio (frequency multiplier)
+    #[wasm_bindgen(js_name = setOpRatio)]
+    pub fn set_op_ratio(&mut self, op: u8, ratio: f32) {
+        self.voice_manager.set_op_ratio(op as usize, ratio);
+    }
+
+    /// Set operator level (0-1)
+    #[wasm_bindgen(js_name = setOpLevel)]
+    pub fn set_op_level(&mut self, op: u8, level: f32) {
+        self.voice_manager.set_op_level(op as usize, level);
+    }
+
+    /// Get operator level
+    #[wasm_bindgen(js_name = getOpLevel)]
+    pub fn get_op_level(&self, op: u8) -> f32 {
+        self.voice_manager.get_op_level(op as usize)
+    }
+
+    /// Get operator ratio
+    #[wasm_bindgen(js_name = getOpRatio)]
+    pub fn get_op_ratio(&self, op: u8) -> f32 {
+        self.voice_manager.get_op_ratio(op as usize)
+    }
+
+    /// Set operator detune in cents (-100 to +100)
+    #[wasm_bindgen(js_name = setOpDetune)]
+    pub fn set_op_detune(&mut self, op: u8, detune: f32) {
+        self.voice_manager.set_op_detune(op as usize, detune);
+    }
+
+    /// Set operator envelope attack
+    #[wasm_bindgen(js_name = setOpAttack)]
+    pub fn set_op_attack(&mut self, op: u8, attack: f32) {
+        self.voice_manager.set_op_attack(op as usize, attack);
+    }
+
+    /// Set operator envelope decay
+    #[wasm_bindgen(js_name = setOpDecay)]
+    pub fn set_op_decay(&mut self, op: u8, decay: f32) {
+        self.voice_manager.set_op_decay(op as usize, decay);
+    }
+
+    /// Set operator envelope sustain
+    #[wasm_bindgen(js_name = setOpSustain)]
+    pub fn set_op_sustain(&mut self, op: u8, sustain: f32) {
+        self.voice_manager.set_op_sustain(op as usize, sustain);
+    }
+
+    /// Set operator envelope release
+    #[wasm_bindgen(js_name = setOpRelease)]
+    pub fn set_op_release(&mut self, op: u8, release: f32) {
+        self.voice_manager.set_op_release(op as usize, release);
+    }
+
+    /// Set operator feedback
+    #[wasm_bindgen(js_name = setOpFeedback)]
+    pub fn set_op_feedback(&mut self, op: u8, feedback: f32) {
+        self.voice_manager.set_op_feedback(op as usize, feedback);
+    }
+
+    /// Set operator velocity sensitivity
+    #[wasm_bindgen(js_name = setOpVelocitySens)]
+    pub fn set_op_velocity_sens(&mut self, op: u8, sens: f32) {
+        self.voice_manager.set_op_velocity_sens(op as usize, sens);
+    }
+
+    // === Filter Controls ===
+
+    /// Enable/disable filter
+    #[wasm_bindgen(js_name = setFilterEnabled)]
+    pub fn set_filter_enabled(&mut self, enabled: bool) {
+        self.voice_manager.set_filter_enabled(enabled);
+    }
+
+    /// Set filter cutoff
+    #[wasm_bindgen(js_name = setFilterCutoff)]
+    pub fn set_filter_cutoff(&mut self, cutoff: f32) {
+        self.voice_manager.set_filter_cutoff(cutoff);
+    }
+
+    /// Set filter resonance
+    #[wasm_bindgen(js_name = setFilterResonance)]
+    pub fn set_filter_resonance(&mut self, resonance: f32) {
+        self.voice_manager.set_filter_resonance(resonance);
+    }
+
+    // === Vibrato Controls ===
+
+    /// Set vibrato depth in cents (0-100)
+    #[wasm_bindgen(js_name = setVibratoDepth)]
+    pub fn set_vibrato_depth(&mut self, depth: f32) {
+        self.voice_manager.set_vibrato_depth(depth);
+    }
+
+    /// Set vibrato rate in Hz (0.1-20)
+    #[wasm_bindgen(js_name = setVibratoRate)]
+    pub fn set_vibrato_rate(&mut self, rate: f32) {
+        self.voice_manager.set_vibrato_rate(rate);
+    }
+
+    // === Master Volume ===
+
+    #[wasm_bindgen(js_name = setMasterVolume)]
+    pub fn set_master_volume(&mut self, volume: f32) {
+        self.voice_manager.set_master_volume(volume);
+    }
+
+    /// Set all parameters for an operator at once
+    #[wasm_bindgen(js_name = setOperator)]
+    pub fn set_operator(
+        &mut self,
+        op: u8,
+        ratio: f32,
+        level: f32,
+        detune: f32,
+        attack: f32,
+        decay: f32,
+        sustain: f32,
+        release: f32,
+        feedback: f32,
+    ) {
+        let idx = op as usize;
+        self.voice_manager.set_op_ratio(idx, ratio);
+        self.voice_manager.set_op_level(idx, level);
+        self.voice_manager.set_op_detune(idx, detune);
+        self.voice_manager.set_op_attack(idx, attack);
+        self.voice_manager.set_op_decay(idx, decay);
+        self.voice_manager.set_op_sustain(idx, sustain);
+        self.voice_manager.set_op_release(idx, release);
+        self.voice_manager.set_op_feedback(idx, feedback);
+    }
+
+    /// Debug dump of current state
+    #[wasm_bindgen(js_name = debugDump)]
+    pub fn debug_dump(&self) -> String {
+        format!(
+            "6-OP FM | Algo: {} | Levels: [{:.2}, {:.2}, {:.2}, {:.2}, {:.2}, {:.2}] | Ratios: [{:.2}, {:.2}, {:.2}, {:.2}, {:.2}, {:.2}]",
+            self.voice_manager.get_algorithm(),
+            self.voice_manager.get_op_level(0),
+            self.voice_manager.get_op_level(1),
+            self.voice_manager.get_op_level(2),
+            self.voice_manager.get_op_level(3),
+            self.voice_manager.get_op_level(4),
+            self.voice_manager.get_op_level(5),
+            self.voice_manager.get_op_ratio(0),
+            self.voice_manager.get_op_ratio(1),
+            self.voice_manager.get_op_ratio(2),
+            self.voice_manager.get_op_ratio(3),
+            self.voice_manager.get_op_ratio(4),
+            self.voice_manager.get_op_ratio(5),
+        )
     }
 }

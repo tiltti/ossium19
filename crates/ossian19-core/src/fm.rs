@@ -746,6 +746,779 @@ impl Fm4OpVoiceManager {
     }
 }
 
+// ============================================================================
+// 6-Operator FM (DX7-style) with 32 algorithms
+// ============================================================================
+
+/// DX7-style 32 algorithms for 6-operator FM
+/// Operators numbered 1-6, where 6 typically has feedback
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[repr(u8)]
+pub enum Dx7Algorithm {
+    #[default]
+    Algo1 = 0,   Algo2 = 1,   Algo3 = 2,   Algo4 = 3,
+    Algo5 = 4,   Algo6 = 5,   Algo7 = 6,   Algo8 = 7,
+    Algo9 = 8,   Algo10 = 9,  Algo11 = 10, Algo12 = 11,
+    Algo13 = 12, Algo14 = 13, Algo15 = 14, Algo16 = 15,
+    Algo17 = 16, Algo18 = 17, Algo19 = 18, Algo20 = 19,
+    Algo21 = 20, Algo22 = 21, Algo23 = 22, Algo24 = 23,
+    Algo25 = 24, Algo26 = 25, Algo27 = 26, Algo28 = 27,
+    Algo29 = 28, Algo30 = 29, Algo31 = 30, Algo32 = 31,
+}
+
+impl Dx7Algorithm {
+    pub fn from_u8(value: u8) -> Self {
+        if value < 32 {
+            // SAFETY: All values 0-31 are valid enum variants
+            unsafe { std::mem::transmute(value) }
+        } else {
+            Self::Algo1
+        }
+    }
+
+    /// Returns which operators are carriers (output to audio) for this algorithm
+    /// DX7 operator indices: 0=OP1, 1=OP2, 2=OP3, 3=OP4, 4=OP5, 5=OP6
+    pub fn carriers(&self) -> &'static [usize] {
+        match self {
+            // Single carrier algorithms
+            Self::Algo1 | Self::Algo2 | Self::Algo3 | Self::Algo4 => &[0],
+            Self::Algo5 | Self::Algo6 => &[0],
+            Self::Algo7 | Self::Algo8 | Self::Algo9 => &[0],
+            // Two carriers
+            Self::Algo10 | Self::Algo11 | Self::Algo12 => &[0, 2],
+            Self::Algo13 | Self::Algo14 | Self::Algo15 => &[0, 2],
+            Self::Algo16 | Self::Algo17 | Self::Algo18 => &[0, 2],
+            Self::Algo19 | Self::Algo20 | Self::Algo21 => &[0, 1, 2],
+            Self::Algo22 | Self::Algo23 => &[0, 1, 2],
+            // Three+ carriers
+            Self::Algo24 | Self::Algo25 | Self::Algo26 => &[0, 1, 2],
+            Self::Algo27 | Self::Algo28 => &[0, 1, 2, 3],
+            Self::Algo29 | Self::Algo30 => &[0, 1, 2, 3],
+            Self::Algo31 => &[0, 1, 2, 3, 4],
+            Self::Algo32 => &[0, 1, 2, 3, 4, 5], // Full additive
+        }
+    }
+
+    /// Short description of algorithm topology
+    pub fn description(&self) -> &'static str {
+        match self {
+            Self::Algo1 => "6→5→4→3→2→1",
+            Self::Algo2 => "6→5→4→3→2, 1",
+            Self::Algo3 => "6→5→4→3, 2→1",
+            Self::Algo4 => "6→5→4, 3→2→1",
+            Self::Algo5 => "6→5, 4→3→2→1",
+            Self::Algo6 => "6→5+4→3→2→1",
+            Self::Algo7 => "6→5→4+3→2→1",
+            Self::Algo8 => "6→5→4→3+2→1",
+            Self::Algo9 => "6→5+4+3→2→1",
+            Self::Algo10 => "6→5→4, 3→2→1",
+            Self::Algo11 => "6→5→4→3, 2→1",
+            Self::Algo12 => "6+5→4→3, 2→1",
+            Self::Algo13 => "6→5→4, 3+2→1",
+            Self::Algo14 => "6→5+4→3, 2→1",
+            Self::Algo15 => "6→5, 4→3, 2→1",
+            Self::Algo16 => "6→5→4, 3, 2→1",
+            Self::Algo17 => "6→5, 4→3, 2, 1",
+            Self::Algo18 => "6→5→4→3, 2, 1",
+            Self::Algo19 => "6→5+4, 3, 2→1",
+            Self::Algo20 => "6→5+4+3, 2→1",
+            Self::Algo21 => "6→5+4, 3+2, 1",
+            Self::Algo22 => "6→5→4, 3, 2, 1",
+            Self::Algo23 => "6→5, 4, 3, 2→1",
+            Self::Algo24 => "6→5, 4→3, 2, 1",
+            Self::Algo25 => "6→5, 4, 3, 2, 1",
+            Self::Algo26 => "6→5, 4→3, 2, 1",
+            Self::Algo27 => "6→5, 4, 3, 2, 1",
+            Self::Algo28 => "6→5→4, 3, 2, 1",
+            Self::Algo29 => "6→5, 4, 3, 2, 1",
+            Self::Algo30 => "6→5→4, 3, 2, 1",
+            Self::Algo31 => "6→5, 4, 3, 2, 1",
+            Self::Algo32 => "6, 5, 4, 3, 2, 1 (additive)",
+        }
+    }
+}
+
+/// Complete 6-Operator FM Voice (DX7-style)
+#[derive(Debug, Clone)]
+pub struct Fm6OpVoice {
+    /// Six operators (index 0 = OP1, index 5 = OP6)
+    pub operators: [FmOperator; 6],
+    /// Algorithm selection (0-31)
+    pub algorithm: Dx7Algorithm,
+    /// Master filter (optional)
+    pub filter: LadderFilter,
+    pub filter_cutoff: f32,
+    pub filter_resonance: f32,
+    pub filter_enabled: bool,
+
+    note: u8,
+    velocity: f32,
+    active: bool,
+    sample_rate: f32,
+}
+
+impl Fm6OpVoice {
+    pub fn new(sample_rate: f32) -> Self {
+        let mut ops: [FmOperator; 6] = std::array::from_fn(|_| FmOperator::new(sample_rate));
+
+        // OP1 (carrier) - default settings
+        ops[0].ratio = 1.0;
+        ops[0].level = 1.0;
+        ops[0].envelope.attack = 0.001;
+        ops[0].envelope.decay = 0.3;
+        ops[0].envelope.sustain = 0.7;
+        ops[0].envelope.release = 0.3;
+
+        // OP2-5 (modulators/carriers depending on algorithm)
+        for i in 1..5 {
+            ops[i].ratio = 1.0 + (i as f32) * 0.5;
+            ops[i].level = 0.5;
+            ops[i].envelope.attack = 0.001;
+            ops[i].envelope.decay = 0.2;
+            ops[i].envelope.sustain = 0.4;
+            ops[i].envelope.release = 0.2;
+        }
+
+        // OP6 (typically has feedback)
+        ops[5].ratio = 1.0;
+        ops[5].level = 0.5;
+        ops[5].feedback = 0.0;
+        ops[5].envelope.attack = 0.001;
+        ops[5].envelope.decay = 0.15;
+        ops[5].envelope.sustain = 0.3;
+        ops[5].envelope.release = 0.15;
+
+        Self {
+            operators: ops,
+            algorithm: Dx7Algorithm::default(),
+            filter: LadderFilter::new(sample_rate),
+            filter_cutoff: 20000.0,
+            filter_resonance: 0.0,
+            filter_enabled: false,
+            note: 0,
+            velocity: 0.0,
+            active: false,
+            sample_rate,
+        }
+    }
+
+    pub fn set_sample_rate(&mut self, sample_rate: f32) {
+        self.sample_rate = sample_rate;
+        for op in &mut self.operators {
+            op.set_sample_rate(sample_rate);
+        }
+        self.filter.set_sample_rate(sample_rate);
+    }
+
+    pub fn note_on(&mut self, note: u8, velocity: f32) {
+        self.note = note;
+        self.velocity = velocity;
+        self.active = true;
+
+        let note_freq = midi_to_freq(note);
+
+        for op in &mut self.operators {
+            op.set_note_frequency(note_freq);
+            op.trigger(velocity);
+        }
+    }
+
+    pub fn note_off(&mut self) {
+        for op in &mut self.operators {
+            op.release();
+        }
+    }
+
+    pub fn is_finished(&self) -> bool {
+        let carriers = self.algorithm.carriers();
+        carriers.iter().all(|&i| self.operators[i].is_finished())
+    }
+
+    /// Generate next sample using selected algorithm
+    #[inline]
+    pub fn tick(&mut self) -> f32 {
+        if !self.active {
+            return 0.0;
+        }
+
+        // Get operator outputs - we need to call tick() in the right order
+        // based on the algorithm topology
+        let output = self.process_algorithm();
+
+        // Apply optional filter
+        let filtered = if self.filter_enabled {
+            self.filter.set_cutoff(self.filter_cutoff);
+            self.filter.set_resonance(self.filter_resonance);
+            self.filter.tick(output)
+        } else {
+            output
+        };
+
+        if self.is_finished() {
+            self.active = false;
+        }
+
+        filtered
+    }
+
+    /// Process the selected algorithm and return output
+    #[inline]
+    fn process_algorithm(&mut self) -> f32 {
+        // Operator indices: 0=OP1, 1=OP2, 2=OP3, 3=OP4, 4=OP5, 5=OP6
+        // In DX7, higher numbered operators typically modulate lower ones
+        match self.algorithm {
+            Dx7Algorithm::Algo1 => {
+                // 6→5→4→3→2→1 (full serial stack)
+                let op6 = self.operators[5].tick(0.0);
+                let op5 = self.operators[4].tick(op6 * PI);
+                let op4 = self.operators[3].tick(op5 * PI);
+                let op3 = self.operators[2].tick(op4 * PI);
+                let op2 = self.operators[1].tick(op3 * PI);
+                self.operators[0].tick(op2 * PI)
+            }
+            Dx7Algorithm::Algo2 => {
+                // 6→5→4→3→2, 1 output separately
+                let op6 = self.operators[5].tick(0.0);
+                let op5 = self.operators[4].tick(op6 * PI);
+                let op4 = self.operators[3].tick(op5 * PI);
+                let op3 = self.operators[2].tick(op4 * PI);
+                let op2 = self.operators[1].tick(op3 * PI);
+                let op1 = self.operators[0].tick(0.0);
+                (op2 + op1) * 0.5
+            }
+            Dx7Algorithm::Algo3 => {
+                // 6→5→4→3, 2→1
+                let op6 = self.operators[5].tick(0.0);
+                let op5 = self.operators[4].tick(op6 * PI);
+                let op4 = self.operators[3].tick(op5 * PI);
+                let op3 = self.operators[2].tick(op4 * PI);
+                let op2 = self.operators[1].tick(0.0);
+                let op1 = self.operators[0].tick(op2 * PI);
+                (op3 + op1) * 0.5
+            }
+            Dx7Algorithm::Algo4 => {
+                // 6→5→4, 3→2→1
+                let op6 = self.operators[5].tick(0.0);
+                let op5 = self.operators[4].tick(op6 * PI);
+                let op4 = self.operators[3].tick(op5 * PI);
+                let op3 = self.operators[2].tick(0.0);
+                let op2 = self.operators[1].tick(op3 * PI);
+                let op1 = self.operators[0].tick(op2 * PI);
+                (op4 + op1) * 0.5
+            }
+            Dx7Algorithm::Algo5 => {
+                // 6→5, 4→3→2→1
+                let op6 = self.operators[5].tick(0.0);
+                let op5 = self.operators[4].tick(op6 * PI);
+                let op4 = self.operators[3].tick(0.0);
+                let op3 = self.operators[2].tick(op4 * PI);
+                let op2 = self.operators[1].tick(op3 * PI);
+                let op1 = self.operators[0].tick(op2 * PI);
+                (op5 + op1) * 0.5
+            }
+            Dx7Algorithm::Algo6 => {
+                // 6→5+4 combined → 3→2→1
+                let op6 = self.operators[5].tick(0.0);
+                let op5 = self.operators[4].tick(op6 * PI);
+                let op4 = self.operators[3].tick(op6 * PI);
+                let op3 = self.operators[2].tick((op5 + op4) * PI * 0.5);
+                let op2 = self.operators[1].tick(op3 * PI);
+                self.operators[0].tick(op2 * PI)
+            }
+            Dx7Algorithm::Algo7 => {
+                // 6→5→4+3→2→1
+                let op6 = self.operators[5].tick(0.0);
+                let op5 = self.operators[4].tick(op6 * PI);
+                let op4 = self.operators[3].tick(op5 * PI);
+                let op3 = self.operators[2].tick(0.0);
+                let op2 = self.operators[1].tick((op4 + op3) * PI * 0.5);
+                self.operators[0].tick(op2 * PI)
+            }
+            Dx7Algorithm::Algo8 => {
+                // 6→5→4→3+2→1
+                let op6 = self.operators[5].tick(0.0);
+                let op5 = self.operators[4].tick(op6 * PI);
+                let op4 = self.operators[3].tick(op5 * PI);
+                let op3 = self.operators[2].tick(op4 * PI);
+                let op2 = self.operators[1].tick(0.0);
+                self.operators[0].tick((op3 + op2) * PI * 0.5)
+            }
+            Dx7Algorithm::Algo9 => {
+                // 6→5+4+3→2→1
+                let op6 = self.operators[5].tick(0.0);
+                let op5 = self.operators[4].tick(op6 * PI);
+                let op4 = self.operators[3].tick(0.0);
+                let op3 = self.operators[2].tick(0.0);
+                let op2 = self.operators[1].tick((op5 + op4 + op3) * PI / 3.0);
+                self.operators[0].tick(op2 * PI)
+            }
+            Dx7Algorithm::Algo10 => {
+                // 6→5→4, 3→2→1 (two stacks, both output)
+                let op6 = self.operators[5].tick(0.0);
+                let op5 = self.operators[4].tick(op6 * PI);
+                let op4 = self.operators[3].tick(op5 * PI);
+                let op3 = self.operators[2].tick(0.0);
+                let op2 = self.operators[1].tick(op3 * PI);
+                let op1 = self.operators[0].tick(op2 * PI);
+                (op4 + op1) * 0.5
+            }
+            Dx7Algorithm::Algo11 => {
+                // 6→5→4→3 out, 2→1 out
+                let op6 = self.operators[5].tick(0.0);
+                let op5 = self.operators[4].tick(op6 * PI);
+                let op4 = self.operators[3].tick(op5 * PI);
+                let op3 = self.operators[2].tick(op4 * PI);
+                let op2 = self.operators[1].tick(0.0);
+                let op1 = self.operators[0].tick(op2 * PI);
+                (op3 + op1) * 0.5
+            }
+            Dx7Algorithm::Algo12 => {
+                // 6+5→4→3, 2→1
+                let op6 = self.operators[5].tick(0.0);
+                let op5 = self.operators[4].tick(0.0);
+                let op4 = self.operators[3].tick((op6 + op5) * PI * 0.5);
+                let op3 = self.operators[2].tick(op4 * PI);
+                let op2 = self.operators[1].tick(0.0);
+                let op1 = self.operators[0].tick(op2 * PI);
+                (op3 + op1) * 0.5
+            }
+            Dx7Algorithm::Algo13 => {
+                // 6→5→4, 3+2→1
+                let op6 = self.operators[5].tick(0.0);
+                let op5 = self.operators[4].tick(op6 * PI);
+                let op4 = self.operators[3].tick(op5 * PI);
+                let op3 = self.operators[2].tick(0.0);
+                let op2 = self.operators[1].tick(0.0);
+                let op1 = self.operators[0].tick((op4 + op3 + op2) * PI / 3.0);
+                op1
+            }
+            Dx7Algorithm::Algo14 => {
+                // 6→5+4→3, 2→1
+                let op6 = self.operators[5].tick(0.0);
+                let op5 = self.operators[4].tick(op6 * PI);
+                let op4 = self.operators[3].tick(op6 * PI);
+                let op3 = self.operators[2].tick((op5 + op4) * PI * 0.5);
+                let op2 = self.operators[1].tick(0.0);
+                let op1 = self.operators[0].tick(op2 * PI);
+                (op3 + op1) * 0.5
+            }
+            Dx7Algorithm::Algo15 => {
+                // 6→5, 4→3, 2→1 (three parallel stacks)
+                let op6 = self.operators[5].tick(0.0);
+                let op5 = self.operators[4].tick(op6 * PI);
+                let op4 = self.operators[3].tick(0.0);
+                let op3 = self.operators[2].tick(op4 * PI);
+                let op2 = self.operators[1].tick(0.0);
+                let op1 = self.operators[0].tick(op2 * PI);
+                (op5 + op3 + op1) / 3.0
+            }
+            Dx7Algorithm::Algo16 => {
+                // 6→5→4, 3, 2→1
+                let op6 = self.operators[5].tick(0.0);
+                let op5 = self.operators[4].tick(op6 * PI);
+                let op4 = self.operators[3].tick(op5 * PI);
+                let op3 = self.operators[2].tick(0.0);
+                let op2 = self.operators[1].tick(0.0);
+                let op1 = self.operators[0].tick(op2 * PI);
+                (op4 + op3 + op1) / 3.0
+            }
+            Dx7Algorithm::Algo17 => {
+                // 6→5, 4→3, 2, 1
+                let op6 = self.operators[5].tick(0.0);
+                let op5 = self.operators[4].tick(op6 * PI);
+                let op4 = self.operators[3].tick(0.0);
+                let op3 = self.operators[2].tick(op4 * PI);
+                let op2 = self.operators[1].tick(0.0);
+                let op1 = self.operators[0].tick(0.0);
+                (op5 + op3 + op2 + op1) * 0.25
+            }
+            Dx7Algorithm::Algo18 => {
+                // 6→5→4→3, 2, 1
+                let op6 = self.operators[5].tick(0.0);
+                let op5 = self.operators[4].tick(op6 * PI);
+                let op4 = self.operators[3].tick(op5 * PI);
+                let op3 = self.operators[2].tick(op4 * PI);
+                let op2 = self.operators[1].tick(0.0);
+                let op1 = self.operators[0].tick(0.0);
+                (op3 + op2 + op1) / 3.0
+            }
+            Dx7Algorithm::Algo19 => {
+                // 6→5+4, 3, 2→1
+                let op6 = self.operators[5].tick(0.0);
+                let op5 = self.operators[4].tick(op6 * PI);
+                let op4 = self.operators[3].tick(op6 * PI);
+                let op3 = self.operators[2].tick(0.0);
+                let op2 = self.operators[1].tick(0.0);
+                let op1 = self.operators[0].tick(op2 * PI);
+                (op5 + op4 + op3 + op1) * 0.25
+            }
+            Dx7Algorithm::Algo20 => {
+                // 6→5+4+3, 2→1
+                let op6 = self.operators[5].tick(0.0);
+                let op5 = self.operators[4].tick(op6 * PI);
+                let op4 = self.operators[3].tick(op6 * PI);
+                let op3 = self.operators[2].tick(op6 * PI);
+                let op2 = self.operators[1].tick(0.0);
+                let op1 = self.operators[0].tick(op2 * PI);
+                (op5 + op4 + op3 + op1) * 0.25
+            }
+            Dx7Algorithm::Algo21 => {
+                // 6→5+4, 3+2, 1
+                let op6 = self.operators[5].tick(0.0);
+                let op5 = self.operators[4].tick(op6 * PI);
+                let op4 = self.operators[3].tick(op6 * PI);
+                let op3 = self.operators[2].tick(0.0);
+                let op2 = self.operators[1].tick(op3 * PI);
+                let op1 = self.operators[0].tick(0.0);
+                (op5 + op4 + op2 + op1) * 0.25
+            }
+            Dx7Algorithm::Algo22 => {
+                // 6→5→4, 3, 2, 1
+                let op6 = self.operators[5].tick(0.0);
+                let op5 = self.operators[4].tick(op6 * PI);
+                let op4 = self.operators[3].tick(op5 * PI);
+                let op3 = self.operators[2].tick(0.0);
+                let op2 = self.operators[1].tick(0.0);
+                let op1 = self.operators[0].tick(0.0);
+                (op4 + op3 + op2 + op1) * 0.25
+            }
+            Dx7Algorithm::Algo23 => {
+                // 6→5, 4, 3, 2→1
+                let op6 = self.operators[5].tick(0.0);
+                let op5 = self.operators[4].tick(op6 * PI);
+                let op4 = self.operators[3].tick(0.0);
+                let op3 = self.operators[2].tick(0.0);
+                let op2 = self.operators[1].tick(0.0);
+                let op1 = self.operators[0].tick(op2 * PI);
+                (op5 + op4 + op3 + op1) * 0.25
+            }
+            Dx7Algorithm::Algo24 => {
+                // 6→5, 4→3, 2, 1
+                let op6 = self.operators[5].tick(0.0);
+                let op5 = self.operators[4].tick(op6 * PI);
+                let op4 = self.operators[3].tick(0.0);
+                let op3 = self.operators[2].tick(op4 * PI);
+                let op2 = self.operators[1].tick(0.0);
+                let op1 = self.operators[0].tick(0.0);
+                (op5 + op3 + op2 + op1) * 0.25
+            }
+            Dx7Algorithm::Algo25 => {
+                // 6→5, 4, 3, 2, 1
+                let op6 = self.operators[5].tick(0.0);
+                let op5 = self.operators[4].tick(op6 * PI);
+                let op4 = self.operators[3].tick(0.0);
+                let op3 = self.operators[2].tick(0.0);
+                let op2 = self.operators[1].tick(0.0);
+                let op1 = self.operators[0].tick(0.0);
+                (op5 + op4 + op3 + op2 + op1) / 5.0
+            }
+            Dx7Algorithm::Algo26 => {
+                // 6→5, 4→3, 2, 1
+                let op6 = self.operators[5].tick(0.0);
+                let op5 = self.operators[4].tick(op6 * PI);
+                let op4 = self.operators[3].tick(0.0);
+                let op3 = self.operators[2].tick(op4 * PI);
+                let op2 = self.operators[1].tick(0.0);
+                let op1 = self.operators[0].tick(0.0);
+                (op5 + op3 + op2 + op1) * 0.25
+            }
+            Dx7Algorithm::Algo27 => {
+                // 6→5, 4, 3, 2, 1
+                let op6 = self.operators[5].tick(0.0);
+                let op5 = self.operators[4].tick(op6 * PI);
+                let op4 = self.operators[3].tick(0.0);
+                let op3 = self.operators[2].tick(0.0);
+                let op2 = self.operators[1].tick(0.0);
+                let op1 = self.operators[0].tick(0.0);
+                (op5 + op4 + op3 + op2 + op1) / 5.0
+            }
+            Dx7Algorithm::Algo28 => {
+                // 6→5→4, 3, 2, 1
+                let op6 = self.operators[5].tick(0.0);
+                let op5 = self.operators[4].tick(op6 * PI);
+                let op4 = self.operators[3].tick(op5 * PI);
+                let op3 = self.operators[2].tick(0.0);
+                let op2 = self.operators[1].tick(0.0);
+                let op1 = self.operators[0].tick(0.0);
+                (op4 + op3 + op2 + op1) * 0.25
+            }
+            Dx7Algorithm::Algo29 => {
+                // 6→5, 4, 3, 2, 1
+                let op6 = self.operators[5].tick(0.0);
+                let op5 = self.operators[4].tick(op6 * PI);
+                let op4 = self.operators[3].tick(0.0);
+                let op3 = self.operators[2].tick(0.0);
+                let op2 = self.operators[1].tick(0.0);
+                let op1 = self.operators[0].tick(0.0);
+                (op5 + op4 + op3 + op2 + op1) / 5.0
+            }
+            Dx7Algorithm::Algo30 => {
+                // 6→5→4, 3, 2, 1
+                let op6 = self.operators[5].tick(0.0);
+                let op5 = self.operators[4].tick(op6 * PI);
+                let op4 = self.operators[3].tick(op5 * PI);
+                let op3 = self.operators[2].tick(0.0);
+                let op2 = self.operators[1].tick(0.0);
+                let op1 = self.operators[0].tick(0.0);
+                (op4 + op3 + op2 + op1) * 0.25
+            }
+            Dx7Algorithm::Algo31 => {
+                // 6→5, 4, 3, 2, 1 (5 carriers)
+                let op6 = self.operators[5].tick(0.0);
+                let op5 = self.operators[4].tick(op6 * PI);
+                let op4 = self.operators[3].tick(0.0);
+                let op3 = self.operators[2].tick(0.0);
+                let op2 = self.operators[1].tick(0.0);
+                let op1 = self.operators[0].tick(0.0);
+                (op5 + op4 + op3 + op2 + op1) / 5.0
+            }
+            Dx7Algorithm::Algo32 => {
+                // 6, 5, 4, 3, 2, 1 (full additive - all carriers)
+                let op6 = self.operators[5].tick(0.0);
+                let op5 = self.operators[4].tick(0.0);
+                let op4 = self.operators[3].tick(0.0);
+                let op3 = self.operators[2].tick(0.0);
+                let op2 = self.operators[1].tick(0.0);
+                let op1 = self.operators[0].tick(0.0);
+                (op6 + op5 + op4 + op3 + op2 + op1) / 6.0
+            }
+        }
+    }
+
+    pub fn reset(&mut self) {
+        for op in &mut self.operators {
+            op.reset();
+        }
+        self.filter.reset();
+        self.active = false;
+        self.note = 0;
+        self.velocity = 0.0;
+    }
+
+    pub fn is_active(&self) -> bool {
+        self.active
+    }
+
+    pub fn note(&self) -> u8 {
+        self.note
+    }
+}
+
+/// 6-Op FM Voice Manager (DX7-style, polyphonic)
+pub struct Fm6OpVoiceManager {
+    voices: Vec<Fm6OpVoice>,
+    sample_rate: f32,
+    vibrato_lfo: Lfo,
+    vibrato_depth: f32,
+    master_volume: f32,
+}
+
+impl Fm6OpVoiceManager {
+    pub fn new(num_voices: usize, sample_rate: f32) -> Self {
+        let voices = (0..num_voices).map(|_| Fm6OpVoice::new(sample_rate)).collect();
+        let mut vibrato_lfo = Lfo::new(sample_rate);
+        vibrato_lfo.set_frequency(5.0);
+        Self {
+            voices,
+            sample_rate,
+            vibrato_lfo,
+            vibrato_depth: 0.0,
+            master_volume: 0.7,
+        }
+    }
+
+    fn allocate_voice(&mut self) -> Option<&mut Fm6OpVoice> {
+        let inactive_idx = self.voices.iter().position(|v| !v.is_active());
+        if let Some(idx) = inactive_idx {
+            return self.voices.get_mut(idx);
+        }
+        self.voices.first_mut()
+    }
+
+    pub fn note_on(&mut self, note: u8, velocity: f32) {
+        if let Some(voice) = self.voices.iter_mut().find(|v| v.is_active() && v.note() == note) {
+            voice.note_on(note, velocity);
+            return;
+        }
+        if let Some(voice) = self.allocate_voice() {
+            voice.note_on(note, velocity);
+        }
+    }
+
+    pub fn note_off(&mut self, note: u8) {
+        for voice in &mut self.voices {
+            if voice.is_active() && voice.note() == note {
+                voice.note_off();
+            }
+        }
+    }
+
+    pub fn panic(&mut self) {
+        for voice in &mut self.voices {
+            voice.reset();
+        }
+    }
+
+    pub fn active_voice_count(&self) -> usize {
+        self.voices.iter().filter(|v| v.is_active()).count()
+    }
+
+    pub fn tick(&mut self) -> f32 {
+        let vibrato = if self.vibrato_depth > 0.0 {
+            let lfo_value = self.vibrato_lfo.tick();
+            let cents = lfo_value * self.vibrato_depth;
+            (2.0_f32).powf(cents / 1200.0)
+        } else {
+            1.0
+        };
+
+        let mut output = 0.0;
+        for voice in &mut self.voices {
+            if vibrato != 1.0 && voice.is_active() {
+                for op in &mut voice.operators {
+                    let base_freq = op.oscillator.frequency;
+                    op.oscillator.set_frequency(base_freq * vibrato);
+                }
+            }
+            output += voice.tick();
+        }
+        output * self.master_volume
+    }
+
+    pub fn set_algorithm(&mut self, algo: Dx7Algorithm) {
+        for voice in &mut self.voices {
+            voice.algorithm = algo;
+        }
+    }
+
+    pub fn set_op_ratio(&mut self, op_index: usize, ratio: f32) {
+        if op_index < 6 {
+            for voice in &mut self.voices {
+                voice.operators[op_index].ratio = ratio.clamp(0.125, 16.0);
+            }
+        }
+    }
+
+    pub fn set_op_level(&mut self, op_index: usize, level: f32) {
+        if op_index < 6 {
+            for voice in &mut self.voices {
+                voice.operators[op_index].level = level.clamp(0.0, 1.0);
+            }
+        }
+    }
+
+    pub fn set_op_detune(&mut self, op_index: usize, detune: f32) {
+        if op_index < 6 {
+            for voice in &mut self.voices {
+                voice.operators[op_index].detune = detune.clamp(-100.0, 100.0);
+            }
+        }
+    }
+
+    pub fn set_op_attack(&mut self, op_index: usize, attack: f32) {
+        if op_index < 6 {
+            for voice in &mut self.voices {
+                voice.operators[op_index].envelope.attack = attack.max(0.001);
+            }
+        }
+    }
+
+    pub fn set_op_decay(&mut self, op_index: usize, decay: f32) {
+        if op_index < 6 {
+            for voice in &mut self.voices {
+                voice.operators[op_index].envelope.decay = decay.max(0.001);
+            }
+        }
+    }
+
+    pub fn set_op_sustain(&mut self, op_index: usize, sustain: f32) {
+        if op_index < 6 {
+            for voice in &mut self.voices {
+                voice.operators[op_index].envelope.sustain = sustain.clamp(0.0, 1.0);
+            }
+        }
+    }
+
+    pub fn set_op_release(&mut self, op_index: usize, release: f32) {
+        if op_index < 6 {
+            for voice in &mut self.voices {
+                voice.operators[op_index].envelope.release = release.max(0.001);
+            }
+        }
+    }
+
+    pub fn set_op_feedback(&mut self, op_index: usize, feedback: f32) {
+        if op_index < 6 {
+            for voice in &mut self.voices {
+                voice.operators[op_index].feedback = feedback.clamp(0.0, 1.0);
+            }
+        }
+    }
+
+    pub fn set_op_velocity_sens(&mut self, op_index: usize, sens: f32) {
+        if op_index < 6 {
+            for voice in &mut self.voices {
+                voice.operators[op_index].velocity_sens = sens.clamp(0.0, 1.0);
+            }
+        }
+    }
+
+    pub fn set_filter_enabled(&mut self, enabled: bool) {
+        for voice in &mut self.voices {
+            voice.filter_enabled = enabled;
+        }
+    }
+
+    pub fn set_filter_cutoff(&mut self, cutoff: f32) {
+        for voice in &mut self.voices {
+            voice.filter_cutoff = cutoff.clamp(20.0, 20000.0);
+        }
+    }
+
+    pub fn set_filter_resonance(&mut self, resonance: f32) {
+        for voice in &mut self.voices {
+            voice.filter_resonance = resonance.clamp(0.0, 1.0);
+        }
+    }
+
+    pub fn set_vibrato_depth(&mut self, depth: f32) {
+        self.vibrato_depth = depth.clamp(0.0, 100.0);
+    }
+
+    pub fn set_vibrato_rate(&mut self, rate: f32) {
+        self.vibrato_lfo.set_frequency(rate.clamp(0.1, 20.0));
+    }
+
+    pub fn set_master_volume(&mut self, volume: f32) {
+        self.master_volume = volume.clamp(0.0, 1.0);
+    }
+
+    // Debug getters
+    pub fn get_op_level(&self, op_index: usize) -> f32 {
+        if op_index < 6 && !self.voices.is_empty() {
+            self.voices[0].operators[op_index].level
+        } else {
+            0.0
+        }
+    }
+
+    pub fn get_op_ratio(&self, op_index: usize) -> f32 {
+        if op_index < 6 && !self.voices.is_empty() {
+            self.voices[0].operators[op_index].ratio
+        } else {
+            1.0
+        }
+    }
+
+    pub fn get_algorithm(&self) -> u8 {
+        if self.voices.is_empty() {
+            0
+        } else {
+            self.voices[0].algorithm as u8
+        }
+    }
+}
+
 // Legacy 2-op FM for backwards compatibility
 /// FM Algorithm types (simplified for 2-op)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
