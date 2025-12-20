@@ -1,7 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useSettingsStore, LoadedBank } from '../stores/settings-store';
 import { WoodPanel } from './WoodPanel';
 import { DX7Voice } from '../audio/dx7-syx-parser';
+import { midiPlayer } from '../audio/midi-player';
 
 const ACCENT_COLOR = '#ff8c42';
 
@@ -377,6 +378,390 @@ function PresetBrowser() {
   );
 }
 
+// MIDI Player Section
+function MidiFileUploadZone() {
+  const { loadMidiFile } = useSettingsStore();
+  const [isDragging, setIsDragging] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = async (file: File) => {
+    if (!file.name.toLowerCase().match(/\.midi?$/)) {
+      setError('Please select a .mid or .midi file');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      await loadMidiFile(file);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load file');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      handleFile(file);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFile(file);
+    }
+  };
+
+  return (
+    <div>
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        onClick={() => fileInputRef.current?.click()}
+        style={{
+          border: isDragging ? '2px dashed #64c8ff' : '2px dashed #444',
+          borderRadius: 6,
+          padding: 20,
+          textAlign: 'center',
+          cursor: 'pointer',
+          background: isDragging ? '#0a1420' : '#0a0a0a',
+          transition: 'all 0.2s',
+          marginBottom: 8,
+        }}
+      >
+        <div style={{ fontSize: 28, marginBottom: 6 }}>{isLoading ? '...' : '***'}</div>
+        <div style={{ color: '#aaa', fontSize: 12, marginBottom: 4 }}>
+          {isLoading ? 'Loading...' : 'Drop MIDI file here or click to browse'}
+        </div>
+        <div style={{ color: '#666', fontSize: 10, fontFamily: 'monospace' }}>
+          Standard MIDI format (.mid, .midi)
+        </div>
+      </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".mid,.midi"
+        onChange={handleFileSelect}
+        style={{ display: 'none' }}
+      />
+
+      {error && (
+        <div
+          style={{
+            padding: 8,
+            background: '#2a1111',
+            border: '1px solid #661111',
+            borderRadius: 4,
+            color: '#ff6666',
+            fontSize: 11,
+            fontFamily: 'monospace',
+          }}
+        >
+          Error: {error}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MidiFileList() {
+  const { loadedMidiFiles, removeMidiFile, selectedMidiFile, selectMidiFile } = useSettingsStore();
+
+  if (loadedMidiFiles.length === 0) {
+    return (
+      <div style={{ color: '#666', fontSize: 12, textAlign: 'center', padding: 16 }}>
+        No MIDI files loaded
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {loadedMidiFiles.map((file) => (
+        <div
+          key={file.id}
+          style={{
+            background: selectedMidiFile === file.id ? '#1a2030' : '#0a0a0a',
+            border: selectedMidiFile === file.id ? '1px solid #64c8ff' : '1px solid #333',
+            borderRadius: 4,
+            padding: '8px 12px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            cursor: 'pointer',
+          }}
+          onClick={() => selectMidiFile(file.id)}
+        >
+          <div>
+            <div
+              style={{
+                color: selectedMidiFile === file.id ? '#64c8ff' : '#aaa',
+                fontSize: 12,
+                fontWeight: 'bold',
+              }}
+            >
+              {file.name}
+            </div>
+            <div style={{ color: '#666', fontSize: 10, fontFamily: 'monospace' }}>
+              {file.midi.tracks.length} tracks | {Math.round(file.midi.duration)}s | {file.midi.bpm} BPM
+            </div>
+          </div>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              removeMidiFile(file.id);
+            }}
+            style={{
+              background: '#3a1111',
+              border: '1px solid #661111',
+              borderRadius: 3,
+              color: '#ff6666',
+              fontSize: 10,
+              padding: '4px 8px',
+              cursor: 'pointer',
+            }}
+          >
+            X
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function formatTime(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+interface MidiPlayerControlsProps {
+  onNoteOn: (note: number, velocity: number) => void;
+  onNoteOff: (note: number) => void;
+}
+
+function MidiPlayerControls({ onNoteOn, onNoteOff }: MidiPlayerControlsProps) {
+  const {
+    selectedMidiFile,
+    loadedMidiFiles,
+    midiPlayerState,
+    playMidi,
+    pauseMidi,
+    stopMidi,
+    seekMidi,
+    setMidiTrack,
+    setMidiLoop,
+  } = useSettingsStore();
+
+  const [localPosition, setLocalPosition] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  // Set up MIDI player callbacks
+  useEffect(() => {
+    midiPlayer.setCallbacks({
+      onNoteOn,
+      onNoteOff,
+      onPositionChange: (position, duration) => {
+        setLocalPosition(position);
+        useSettingsStore.setState((state) => ({
+          midiPlayerState: { ...state.midiPlayerState, position, duration },
+        }));
+      },
+      onPlayStateChange: (playing) => {
+        setIsPlaying(playing);
+        useSettingsStore.setState((state) => ({
+          midiPlayerState: { ...state.midiPlayerState, isPlaying: playing },
+        }));
+      },
+      onTrackChange: (trackIndex) => {
+        useSettingsStore.setState((state) => ({
+          midiPlayerState: { ...state.midiPlayerState, currentTrack: trackIndex },
+        }));
+      },
+    });
+  }, [onNoteOn, onNoteOff]);
+
+  const selectedFile = loadedMidiFiles.find((f) => f.id === selectedMidiFile);
+  if (!selectedFile) {
+    return (
+      <div style={{ color: '#666', fontSize: 12, textAlign: 'center', padding: 16 }}>
+        Select a MIDI file to play
+      </div>
+    );
+  }
+
+  const { duration, currentTrack, loop } = midiPlayerState;
+
+  return (
+    <div
+      style={{
+        background: '#0a0a0a',
+        border: '1px solid #333',
+        borderRadius: 6,
+        padding: 12,
+      }}
+    >
+      {/* Now Playing */}
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 9, color: '#666', marginBottom: 4 }}>NOW PLAYING</div>
+        <div style={{ color: '#64c8ff', fontSize: 14, fontWeight: 'bold' }}>{selectedFile.name}</div>
+        <div style={{ color: '#888', fontSize: 10, fontFamily: 'monospace' }}>
+          Track: {selectedFile.midi.tracks[currentTrack]?.name || `Track ${currentTrack + 1}`}
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div style={{ marginBottom: 12 }}>
+        <div
+          style={{
+            width: '100%',
+            height: 8,
+            background: '#222',
+            borderRadius: 4,
+            overflow: 'hidden',
+            cursor: 'pointer',
+          }}
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const ratio = (e.clientX - rect.left) / rect.width;
+            seekMidi(ratio * duration);
+          }}
+        >
+          <div
+            style={{
+              width: `${(localPosition / duration) * 100}%`,
+              height: '100%',
+              background: 'linear-gradient(90deg, #64c8ff, #44aaff)',
+              borderRadius: 4,
+              transition: 'width 0.1s',
+            }}
+          />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+          <span style={{ color: '#888', fontSize: 10, fontFamily: 'monospace' }}>
+            {formatTime(localPosition)}
+          </span>
+          <span style={{ color: '#666', fontSize: 10, fontFamily: 'monospace' }}>
+            {formatTime(duration)}
+          </span>
+        </div>
+      </div>
+
+      {/* Controls */}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
+        <button
+          onClick={stopMidi}
+          style={{
+            width: 36,
+            height: 36,
+            background: '#333',
+            border: '1px solid #555',
+            borderRadius: 4,
+            color: '#fff',
+            cursor: 'pointer',
+            fontSize: 14,
+          }}
+        >
+          []
+        </button>
+        <button
+          onClick={isPlaying ? pauseMidi : playMidi}
+          style={{
+            width: 48,
+            height: 48,
+            background: isPlaying
+              ? 'linear-gradient(180deg, #64c8ff 0%, #44aaff 100%)'
+              : 'linear-gradient(180deg, #4a4 0%, #383 100%)',
+            border: 'none',
+            borderRadius: '50%',
+            color: '#000',
+            cursor: 'pointer',
+            fontSize: 18,
+            fontWeight: 'bold',
+          }}
+        >
+          {isPlaying ? '||' : '>'}
+        </button>
+        <button
+          onClick={() => setMidiLoop(!loop)}
+          style={{
+            padding: '6px 12px',
+            background: loop ? '#64c8ff' : '#333',
+            border: loop ? '1px solid #64c8ff' : '1px solid #555',
+            borderRadius: 4,
+            color: loop ? '#000' : '#888',
+            cursor: 'pointer',
+            fontSize: 10,
+            fontWeight: 'bold',
+          }}
+        >
+          LOOP
+        </button>
+      </div>
+
+      {/* Track selector */}
+      {selectedFile.midi.tracks.length > 1 && (
+        <div>
+          <div style={{ fontSize: 9, color: '#666', marginBottom: 4 }}>TRACK</div>
+          <select
+            value={currentTrack}
+            onChange={(e) => setMidiTrack(Number(e.target.value))}
+            style={{
+              width: '100%',
+              padding: '6px 10px',
+              background: '#1a1a1a',
+              border: '1px solid #444',
+              borderRadius: 4,
+              color: '#64c8ff',
+              fontSize: 11,
+              fontFamily: 'monospace',
+            }}
+          >
+            {selectedFile.midi.tracks.map((track, i) => (
+              <option key={i} value={i}>
+                {track.name} ({track.notes.length} notes)
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MidiSection({ onNoteOn, onNoteOff }: MidiPlayerControlsProps) {
+  return (
+    <Section title="MIDI Player">
+      <MidiFileUploadZone />
+      <MidiFileList />
+      <div style={{ marginTop: 12 }}>
+        <MidiPlayerControls onNoteOn={onNoteOn} onNoteOff={onNoteOff} />
+      </div>
+    </Section>
+  );
+}
+
 function AboutSection() {
   const libraries = [
     { name: 'React', description: 'UI framework', version: '18.2.0' },
@@ -458,8 +843,17 @@ function AboutSection() {
   );
 }
 
-export function SettingsPanel() {
-  const { clearAllBanks } = useSettingsStore();
+interface SettingsPanelProps {
+  onNoteOn?: (note: number, velocity: number) => void;
+  onNoteOff?: (note: number) => void;
+}
+
+export function SettingsPanel({ onNoteOn, onNoteOff }: SettingsPanelProps) {
+  const { clearAllBanks, clearAllMidiFiles } = useSettingsStore();
+
+  // Default no-op handlers if not provided
+  const handleNoteOn = onNoteOn || (() => {});
+  const handleNoteOff = onNoteOff || (() => {});
 
   return (
     <div
@@ -509,7 +903,7 @@ export function SettingsPanel() {
           </h2>
 
           <button
-            onClick={clearAllBanks}
+            onClick={() => { clearAllBanks(); clearAllMidiFiles(); }}
             style={{
               background: 'linear-gradient(180deg, #555 0%, #333 100%)',
               border: '1px solid #666',
@@ -540,12 +934,14 @@ export function SettingsPanel() {
               <BankList />
             </Section>
 
-            <AboutSection />
+            <MidiSection onNoteOn={handleNoteOn} onNoteOff={handleNoteOff} />
           </div>
 
           {/* Right column */}
           <div>
             <PresetBrowser />
+
+            <AboutSection />
           </div>
         </div>
       </div>

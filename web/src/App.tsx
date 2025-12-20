@@ -9,6 +9,7 @@ import { Fm6OpPanel } from './components/Fm6OpPanel';
 import { SongPlayer } from './components/SongPlayer';
 import { DrumMachine } from './components/DrumMachine';
 import { SettingsPanel } from './components/SettingsPanel';
+import { ArpeggiatorPanel } from './components/ArpeggiatorPanel';
 import { THEMES, ThemeName } from './theme';
 
 type AppMode = 'subtractive' | 'fm4op' | 'fm6op' | 'drums' | 'settings';
@@ -19,6 +20,7 @@ export const COLOR_THEMES = THEMES;
 export function App() {
   const [appMode, setAppMode] = useState<AppMode>('subtractive');
   const [colorTheme, setColorTheme] = useState<ColorTheme>('classic');
+  const [showArp, setShowArp] = useState(false);
 
   const { isInitialized: subIsInit, init: subInit, noteOn: subNoteOn, noteOff: subNoteOff, panic: subPanic } = useSynthStore();
   const { isInitialized: fm4IsInit, init: fm4Init, noteOn: fm4NoteOn, noteOff: fm4NoteOff, panic: fm4Panic } = useFm4OpStore();
@@ -261,6 +263,23 @@ export function App() {
             >
               SETTINGS
             </button>
+            <button
+              onClick={() => setShowArp(!showArp)}
+              style={{
+                padding: '8px 16px',
+                border: showArp ? `2px solid #64c8ff` : `2px solid ${theme.border}`,
+                borderRadius: theme.button.borderRadius,
+                background: showArp ? '#64c8ff' : 'transparent',
+                color: showArp ? '#000' : theme.textMuted,
+                cursor: 'pointer',
+                fontSize: 11,
+                fontWeight: 'bold',
+                letterSpacing: 1,
+                transition: 'all 0.15s',
+              }}
+            >
+              ARP {showArp ? '▼' : '▶'}
+            </button>
           </div>
 
           {/* Divider */}
@@ -276,9 +295,19 @@ export function App() {
         </div>
       </header>
 
+      {/* Arpeggiator Panel - collapsible */}
+      {showArp && appMode !== 'settings' && appMode !== 'drums' && (
+        <div style={{ padding: '0 20px', marginBottom: 8 }}>
+          <ArpeggiatorPanel
+            onNoteOn={handleNoteOn}
+            onNoteOff={handleNoteOff}
+          />
+        </div>
+      )}
+
       {/* Content based on mode */}
       {appMode === 'settings' ? (
-        <SettingsPanel />
+        <SettingsPanel onNoteOn={handleNoteOn} onNoteOff={handleNoteOff} />
       ) : appMode === 'drums' ? (
         <div style={{ padding: '20px', display: 'flex', justifyContent: 'center' }}>
           <DrumMachine accentColor={accentColor} theme={theme} onPanic={handleGlobalPanic} />

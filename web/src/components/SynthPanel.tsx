@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useSynthStore } from '../stores/synth-store';
 import { Knob } from './Knob';
 import { Waveform } from '../audio/engine';
@@ -378,6 +378,70 @@ function EnvelopeSection({
   );
 }
 
+// Keyboard section with arpeggiator routing
+function KeyboardSection({ lcdColor }: { lcdColor: LcdColor }) {
+  const {
+    pitchBend, modWheel, setPitchBend, setModWheel,
+    noteOn, noteOff, activeNotes, isInitialized, init
+  } = useSynthStore();
+  const { params: arpParams, noteOn: arpNoteOn, noteOff: arpNoteOff, setNoteCallbacks } = useArpStore();
+
+  // Set up arp callbacks to route to synth
+  useEffect(() => {
+    setNoteCallbacks(noteOn, noteOff);
+  }, [noteOn, noteOff, setNoteCallbacks]);
+
+  // Route through arp when enabled, otherwise direct to synth
+  const handleNoteOn = useCallback((note: number, velocity: number) => {
+    if (arpParams.enabled) {
+      arpNoteOn(note, velocity);
+    } else {
+      noteOn(note, velocity);
+    }
+  }, [arpParams.enabled, arpNoteOn, noteOn]);
+
+  const handleNoteOff = useCallback((note: number) => {
+    if (arpParams.enabled) {
+      arpNoteOff(note);
+    } else {
+      noteOff(note);
+    }
+  }, [arpParams.enabled, arpNoteOff, noteOff]);
+
+  return (
+    <div
+      style={{
+        marginBottom: 12,
+        background: '#0a0a0a',
+        borderRadius: 6,
+        border: '1px solid #333',
+        padding: '8px 12px',
+        display: 'flex',
+        alignItems: 'stretch',
+        gap: 12,
+      }}
+    >
+      <PitchModWheels
+        pitchBend={pitchBend}
+        modWheel={modWheel}
+        onPitchBendChange={setPitchBend}
+        onModWheelChange={setModWheel}
+        color={LCD_TEXT_COLORS[lcdColor].fg}
+        modDestination="FILTER"
+      />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <Keyboard
+          onNoteOn={handleNoteOn}
+          onNoteOff={handleNoteOff}
+          activeNotes={activeNotes}
+          isInitialized={isInitialized}
+          init={init}
+        />
+      </div>
+    </div>
+  );
+}
+
 interface SynthPanelProps {
   theme?: Theme;
   onPanic?: () => void;
@@ -389,8 +453,6 @@ export function SynthPanel({ theme = THEMES.classic, onPanic }: SynthPanelProps)
   const {
     params,
     effectParams,
-    pitchBend,
-    modWheel,
     setOsc1Waveform,
     setOsc1Level,
     setOsc2Waveform,
@@ -413,8 +475,6 @@ export function SynthPanel({ theme = THEMES.classic, onPanic }: SynthPanelProps)
     setChorusRate,
     setChorusDepth,
     setChorusMix,
-    setPitchBend,
-    setModWheel,
     panic,
     resetParams,
   } = useSynthStore();
@@ -507,33 +567,7 @@ export function SynthPanel({ theme = THEMES.classic, onPanic }: SynthPanelProps)
         <DisplayPanel theme={theme} />
 
         {/* Keyboard Section - Full width right after display */}
-        <div
-          style={{
-            marginBottom: 12,
-            background: '#0a0a0a',
-            borderRadius: 6,
-            border: '1px solid #333',
-            padding: '8px 12px',
-            display: 'flex',
-            alignItems: 'stretch',
-            gap: 12,
-          }}
-        >
-          {/* Pitch/Mod Wheels on the left */}
-          <PitchModWheels
-            pitchBend={pitchBend}
-            modWheel={modWheel}
-            onPitchBendChange={setPitchBend}
-            onModWheelChange={setModWheel}
-            color={LCD_TEXT_COLORS[lcdMain].fg}
-            modDestination="FILTER"
-          />
-
-          {/* Keyboard fills the rest */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <Keyboard />
-          </div>
-        </div>
+        <KeyboardSection lcdColor={lcdMain} />
 
         {/* Controls Grid */}
         <div

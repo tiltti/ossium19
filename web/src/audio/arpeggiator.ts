@@ -67,16 +67,16 @@ const RATE_TO_BEATS: Record<ArpRate, number> = {
   '1/8D': 0.75,
 };
 
-export const ARP_MODES: { id: ArpMode; name: string; desc: string }[] = [
-  { id: 'up', name: 'UP', desc: 'Ascending' },
-  { id: 'down', name: 'DOWN', desc: 'Descending' },
-  { id: 'up-down', name: 'UP-DN', desc: 'Ping-pong' },
-  { id: 'down-up', name: 'DN-UP', desc: 'Reverse ping-pong' },
-  { id: 'random', name: 'RAND', desc: 'Random order' },
-  { id: 'as-played', name: 'PLAYED', desc: 'Order pressed' },
-  { id: 'converge', name: 'CONV', desc: 'Outside-in' },
-  { id: 'diverge', name: 'DIV', desc: 'Inside-out' },
-  { id: 'chord', name: 'CHORD', desc: 'All at once' },
+export const ARP_MODES: { id: ArpMode; name: string; fullName: string; desc: string }[] = [
+  { id: 'up', name: 'UP', fullName: 'UP', desc: 'Ascending' },
+  { id: 'down', name: 'DOWN', fullName: 'DOWN', desc: 'Descending' },
+  { id: 'up-down', name: 'UP-DN', fullName: 'UP-DOWN', desc: 'Ping-pong' },
+  { id: 'down-up', name: 'DN-UP', fullName: 'DOWN-UP', desc: 'Reverse ping-pong' },
+  { id: 'random', name: 'RAND', fullName: 'RANDOM', desc: 'Random order' },
+  { id: 'as-played', name: 'PLAYED', fullName: 'AS PLAYED', desc: 'Order pressed' },
+  { id: 'converge', name: 'CONV', fullName: 'CONVERGE', desc: 'Outside-in' },
+  { id: 'diverge', name: 'DIV', fullName: 'DIVERGE', desc: 'Inside-out' },
+  { id: 'chord', name: 'CHORD', fullName: 'CHORD', desc: 'All at once' },
 ];
 
 export const ARP_RATES: { id: ArpRate; name: string }[] = [
@@ -91,6 +91,162 @@ export const ARP_RATES: { id: ArpRate; name: string }[] = [
   { id: '1/16T', name: '1/16T' },
   { id: '1/4D', name: '1/4.' },
   { id: '1/8D', name: '1/8.' },
+];
+
+// Arp pattern presets
+export interface ArpPreset {
+  name: string;
+  category: 'Classic' | 'Dance' | 'Ambient' | 'Experimental';
+  params: Partial<ArpeggiatorParams>;
+}
+
+export const ARP_PRESETS: ArpPreset[] = [
+  // === CLASSIC ===
+  {
+    name: 'Basic Up',
+    category: 'Classic',
+    params: { mode: 'up', octaves: 1, rate: '1/8', gate: 75, swing: 0 },
+  },
+  {
+    name: 'Classic 80s',
+    category: 'Classic',
+    params: { mode: 'up', octaves: 2, rate: '1/16', gate: 50, swing: 0 },
+  },
+  {
+    name: 'Synth Pop',
+    category: 'Classic',
+    params: { mode: 'up-down', octaves: 2, rate: '1/8', gate: 80, swing: 15 },
+  },
+  {
+    name: 'Kraftwerk',
+    category: 'Classic',
+    params: { mode: 'up', octaves: 1, rate: '1/16', gate: 30, swing: 0, velocitySpread: 10 },
+  },
+  {
+    name: 'Depeche',
+    category: 'Classic',
+    params: { mode: 'up', octaves: 2, rate: '1/8', gate: 90, swing: 0 },
+  },
+
+  // === DANCE ===
+  {
+    name: 'Trance Gate',
+    category: 'Dance',
+    params: { mode: 'chord', octaves: 1, rate: '1/16', gate: 50, swing: 0, probability: 85 },
+  },
+  {
+    name: 'Acid Bass',
+    category: 'Dance',
+    params: { mode: 'up', octaves: 1, rate: '1/16', gate: 60, swing: 25 },
+  },
+  {
+    name: 'House Stab',
+    category: 'Dance',
+    params: { mode: 'chord', octaves: 1, rate: '1/8', gate: 40, swing: 15 },
+  },
+  {
+    name: 'Techno Pulse',
+    category: 'Dance',
+    params: { mode: 'up', octaves: 1, rate: '1/16', gate: 30, swing: 0, probability: 70 },
+  },
+  {
+    name: 'Eurodance',
+    category: 'Dance',
+    params: { mode: 'up-down', octaves: 2, rate: '1/16', gate: 70, swing: 0 },
+  },
+
+  // === AMBIENT ===
+  {
+    name: 'Slow Pad',
+    category: 'Ambient',
+    params: { mode: 'up', octaves: 2, rate: '1/4', gate: 150, swing: 0 },
+  },
+  {
+    name: 'Dreamy',
+    category: 'Ambient',
+    params: { mode: 'random', octaves: 3, rate: '1/8', gate: 120, timingJitter: 20 },
+  },
+  {
+    name: 'Ethereal',
+    category: 'Ambient',
+    params: { mode: 'converge', octaves: 2, rate: '1/4', gate: 180, swing: 0, velocitySpread: 30 },
+  },
+  {
+    name: 'Floating',
+    category: 'Ambient',
+    params: { mode: 'diverge', octaves: 3, rate: '1/8T', gate: 100, randomOctave: 40 },
+  },
+  {
+    name: 'Meditation',
+    category: 'Ambient',
+    params: { mode: 'up', octaves: 2, rate: '1/2', gate: 200, swing: 0, timingJitter: 15 },
+  },
+
+  // === EXPERIMENTAL ===
+  {
+    name: 'Drunk Walk',
+    category: 'Experimental',
+    params: { mode: 'random', octaves: 2, rate: '1/8', gate: 80, drunk: true, timingJitter: 30 },
+  },
+  {
+    name: 'Glitch',
+    category: 'Experimental',
+    params: { mode: 'random', octaves: 3, rate: '1/16', gate: 40, probability: 60, shuffle: 80 },
+  },
+  {
+    name: 'Chaos',
+    category: 'Experimental',
+    params: { mode: 'random', octaves: 4, rate: '1/32', gate: 30, randomOctave: 100, probability: 50 },
+  },
+  {
+    name: 'Broken',
+    category: 'Experimental',
+    params: { mode: 'up', octaves: 2, rate: '1/16', gate: 50, probability: 65, gateSpread: 40 },
+  },
+  {
+    name: 'Jazz Random',
+    category: 'Experimental',
+    params: { mode: 'random', octaves: 2, rate: '1/8T', gate: 90, swing: 35, velocitySpread: 25 },
+  },
+];
+
+// Pattern presets with notes included
+export interface PatternPreset {
+  name: string;
+  category: 'Chords' | 'Bass' | 'Leads' | 'Pads';
+  notes: { note: number; velocity: number }[];
+  params?: Partial<ArpeggiatorParams>;
+}
+
+export const PATTERN_PRESETS: PatternPreset[] = [
+  // === CHORDS ===
+  { name: 'C Major', category: 'Chords', notes: [{ note: 60, velocity: 100 }, { note: 64, velocity: 90 }, { note: 67, velocity: 85 }] },
+  { name: 'C Minor', category: 'Chords', notes: [{ note: 60, velocity: 100 }, { note: 63, velocity: 90 }, { note: 67, velocity: 85 }] },
+  { name: 'Am7', category: 'Chords', notes: [{ note: 57, velocity: 100 }, { note: 60, velocity: 85 }, { note: 64, velocity: 80 }, { note: 67, velocity: 75 }] },
+  { name: 'Cmaj7', category: 'Chords', notes: [{ note: 60, velocity: 100 }, { note: 64, velocity: 90 }, { note: 67, velocity: 85 }, { note: 71, velocity: 80 }] },
+  { name: 'Dm9', category: 'Chords', notes: [{ note: 50, velocity: 100 }, { note: 60, velocity: 85 }, { note: 65, velocity: 80 }, { note: 69, velocity: 75 }, { note: 76, velocity: 70 }] },
+  { name: 'G7sus4', category: 'Chords', notes: [{ note: 55, velocity: 100 }, { note: 60, velocity: 90 }, { note: 62, velocity: 85 }, { note: 65, velocity: 80 }] },
+  { name: 'Ebmaj9', category: 'Chords', notes: [{ note: 51, velocity: 100 }, { note: 58, velocity: 90 }, { note: 62, velocity: 85 }, { note: 65, velocity: 80 }, { note: 70, velocity: 75 }] },
+  { name: 'F#m11', category: 'Chords', notes: [{ note: 42, velocity: 100 }, { note: 54, velocity: 90 }, { note: 57, velocity: 85 }, { note: 61, velocity: 80 }, { note: 66, velocity: 75 }] },
+
+  // === BASS ===
+  { name: 'C Octave', category: 'Bass', notes: [{ note: 36, velocity: 110 }, { note: 48, velocity: 95 }], params: { mode: 'up', octaves: 1, rate: '1/8' } },
+  { name: 'C5 Power', category: 'Bass', notes: [{ note: 36, velocity: 110 }, { note: 43, velocity: 100 }, { note: 48, velocity: 90 }], params: { mode: 'up', rate: '1/16' } },
+  { name: 'Acid Line', category: 'Bass', notes: [{ note: 36, velocity: 120 }, { note: 39, velocity: 100 }, { note: 48, velocity: 110 }], params: { mode: 'random', rate: '1/16', swing: 25 } },
+  { name: 'Funk Bass', category: 'Bass', notes: [{ note: 36, velocity: 115 }, { note: 38, velocity: 90 }, { note: 43, velocity: 100 }, { note: 48, velocity: 105 }], params: { mode: 'as-played', rate: '1/16', swing: 20 } },
+
+  // === LEADS ===
+  { name: 'Stranger Things', category: 'Leads', notes: [{ note: 48, velocity: 100 }, { note: 52, velocity: 95 }, { note: 55, velocity: 90 }, { note: 60, velocity: 85 }], params: { mode: 'up', octaves: 2, rate: '1/8', gate: 70, swing: 0 } },
+  { name: 'Trance Lead', category: 'Leads', notes: [{ note: 72, velocity: 100 }, { note: 76, velocity: 95 }, { note: 79, velocity: 90 }], params: { mode: 'up', octaves: 2, rate: '1/16', gate: 50 } },
+  { name: 'Ethereal', category: 'Leads', notes: [{ note: 72, velocity: 85 }, { note: 77, velocity: 80 }, { note: 79, velocity: 75 }, { note: 84, velocity: 70 }], params: { mode: 'converge', octaves: 2, rate: '1/8', gate: 120 } },
+  { name: 'Synth Pop', category: 'Leads', notes: [{ note: 67, velocity: 100 }, { note: 72, velocity: 95 }, { note: 76, velocity: 90 }, { note: 79, velocity: 85 }], params: { mode: 'up-down', rate: '1/8' } },
+  { name: 'Glitch Lead', category: 'Leads', notes: [{ note: 72, velocity: 110 }, { note: 74, velocity: 90 }, { note: 79, velocity: 100 }, { note: 84, velocity: 95 }], params: { mode: 'random', rate: '1/16', probability: 75, shuffle: 50 } },
+
+  // === PADS ===
+  { name: 'Wide Pad', category: 'Pads', notes: [{ note: 48, velocity: 70 }, { note: 60, velocity: 80 }, { note: 64, velocity: 75 }, { note: 67, velocity: 70 }, { note: 72, velocity: 65 }], params: { mode: 'chord', rate: '1/2', gate: 150 } },
+  { name: 'Ambient', category: 'Pads', notes: [{ note: 48, velocity: 60 }, { note: 55, velocity: 65 }, { note: 60, velocity: 70 }, { note: 67, velocity: 65 }, { note: 72, velocity: 60 }], params: { mode: 'diverge', rate: '1/4', gate: 180, velocitySpread: 20 } },
+  { name: 'Dream', category: 'Pads', notes: [{ note: 53, velocity: 65 }, { note: 60, velocity: 70 }, { note: 65, velocity: 75 }, { note: 72, velocity: 70 }, { note: 77, velocity: 65 }], params: { mode: 'random', rate: '1/4', gate: 200, timingJitter: 20 } },
+  { name: 'Tension', category: 'Pads', notes: [{ note: 48, velocity: 80 }, { note: 54, velocity: 75 }, { note: 60, velocity: 85 }, { note: 66, velocity: 80 }], params: { mode: 'converge', rate: '1/4', gate: 130 } },
 ];
 
 // Gaussian random for natural distribution
@@ -546,8 +702,89 @@ export class Arpeggiator {
     return this.getActiveNotes().map(n => n.note);
   }
 
+  // Get held notes with velocity for pattern saving
+  getHeldNotesWithVelocity(): { note: number; velocity: number }[] {
+    return this.getActiveNotes().map(n => ({ note: n.note, velocity: n.velocity }));
+  }
+
+  // Load a saved pattern by setting held notes directly
+  loadSavedPattern(notes: { note: number; velocity: number }[]) {
+    // Stop current playback
+    this.stop();
+
+    // Clear current notes
+    this.heldNotes = [];
+    this.latchedNotes = [];
+    this.noteOrder = 0;
+
+    // Add each note
+    notes.forEach(n => {
+      this.heldNotes.push({ note: n.note, velocity: n.velocity, order: this.noteOrder++ });
+    });
+
+    // Regenerate the pattern
+    this.regeneratePattern();
+
+    // If latch is enabled, also set latched notes
+    if (this.params.latch) {
+      this.latchedNotes = [...this.heldNotes];
+    }
+
+    // Start if enabled and has notes
+    if (this.params.enabled && this.heldNotes.length > 0) {
+      this.start();
+    }
+  }
+
   isActive(): boolean {
     return this.isRunning;
+  }
+
+  // Stop playback without disabling arpeggiator - clears held notes
+  stopPlayback() {
+    this.stop();
+    this.heldNotes = [];
+    this.latchedNotes = [];
+    this.pattern = [];
+    this.currentStep = 0;
+  }
+
+  // Update a held note's velocity
+  setNoteVelocity(note: number, velocity: number) {
+    const heldNote = this.heldNotes.find(n => n.note === note);
+    if (heldNote) {
+      heldNote.velocity = clamp(velocity, 1, 127);
+    }
+    const latchedNote = this.latchedNotes.find(n => n.note === note);
+    if (latchedNote) {
+      latchedNote.velocity = clamp(velocity, 1, 127);
+    }
+  }
+
+  // Remove a specific note from held notes
+  removeNote(note: number) {
+    this.heldNotes = this.heldNotes.filter(n => n.note !== note);
+    this.latchedNotes = this.latchedNotes.filter(n => n.note !== note);
+    this.regeneratePattern();
+
+    // Stop if no notes remain
+    if (this.heldNotes.length === 0 && this.latchedNotes.length === 0) {
+      this.stop();
+    }
+  }
+
+  // Add a note to held notes (for editor)
+  addNote(note: number, velocity: number = 100) {
+    const existing = this.heldNotes.find(n => n.note === note);
+    if (!existing) {
+      this.heldNotes.push({ note, velocity, order: this.noteOrder++ });
+      this.regeneratePattern();
+
+      // Start if enabled and not running
+      if (this.params.enabled && !this.isRunning && this.heldNotes.length > 0) {
+        this.start();
+      }
+    }
   }
 
   panic() {

@@ -489,12 +489,35 @@ function InfoDisplay({ lcdColor = 'green' }: { lcdColor?: LcdColor }) {
   );
 }
 
-// Keyboard section with pitch/mod wheels
+// Keyboard section with pitch/mod wheels and arpeggiator routing
 function KeyboardSection({ lcdColor }: { lcdColor: LcdColor }) {
   const {
     pitchBend, modWheel, setPitchBend, setModWheel,
     noteOn, noteOff, activeNotes, isInitialized, init
   } = useFm4OpStore();
+  const { params: arpParams, noteOn: arpNoteOn, noteOff: arpNoteOff, setNoteCallbacks } = useArpStore();
+
+  // Set up arp callbacks to route to synth
+  useEffect(() => {
+    setNoteCallbacks(noteOn, noteOff);
+  }, [noteOn, noteOff, setNoteCallbacks]);
+
+  // Route through arp when enabled, otherwise direct to synth
+  const handleNoteOn = (note: number, velocity: number) => {
+    if (arpParams.enabled) {
+      arpNoteOn(note, velocity);
+    } else {
+      noteOn(note, velocity);
+    }
+  };
+
+  const handleNoteOff = (note: number) => {
+    if (arpParams.enabled) {
+      arpNoteOff(note);
+    } else {
+      noteOff(note);
+    }
+  };
 
   return (
     <div
@@ -519,8 +542,8 @@ function KeyboardSection({ lcdColor }: { lcdColor: LcdColor }) {
       />
       <div style={{ flex: 1, minWidth: 0 }}>
         <Keyboard
-          onNoteOn={noteOn}
-          onNoteOff={noteOff}
+          onNoteOn={handleNoteOn}
+          onNoteOff={handleNoteOff}
           activeNotes={activeNotes}
           isInitialized={isInitialized}
           init={init}
