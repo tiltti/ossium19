@@ -1,6 +1,6 @@
 # Ossian-19
 
-A hybrid software synthesizer combining classic subtractive synthesis with 4-operator FM synthesis, built with Rust and WebAssembly.
+A hybrid software synthesizer combining classic subtractive synthesis with DX7-style 6-operator FM synthesis, built with Rust and WebAssembly.
 
 **[Try it live](https://tiltti.github.io/ossium19/)**
 
@@ -10,16 +10,21 @@ A hybrid software synthesizer combining classic subtractive synthesis with 4-ope
 
 - **Subtractive Synthesizer**
   - Dual oscillators (Saw, Square, Triangle, Sine) with PolyBLEP anti-aliasing
-  - 24dB Moog-style ladder filter with resonance
+  - Moog-style ladder filter with variable slope (6/12/24 dB/octave)
   - Sub-oscillator and noise generator
   - Dedicated filter envelope with adjustable amount
 
-- **4-Operator FM Synthesizer**
-  - 8 algorithms inspired by classic DX-series
-  - Per-operator ADSR envelopes
-  - Operator feedback control
-  - 16 legendary DX7-style factory presets
-  - DX7 SYX file parser for importing patches
+- **6-Operator FM Synthesizer** (DX7-style)
+  - All 32 DX7 algorithms with accurate modulation routing
+  - Per-operator ADSR envelopes with velocity sensitivity
+  - Operator feedback and detuning
+  - Optional post-FM lowpass filter
+  - Factory presets and DX7 SYX file parser
+
+- **4-Operator FM Synthesizer** (Classic mode)
+  - 8 simplified algorithms
+  - Per-operator controls
+  - 16 factory presets
 
 ### Drum Machine
 
@@ -75,8 +80,8 @@ A hybrid software synthesizer combining classic subtractive synthesis with 4-ope
 │  │ (PolyBLEP)  │  │  (Ladder)   │  │   (ADSR)    │     │
 │  └─────────────┘  └─────────────┘  └─────────────┘     │
 │  ┌─────────────────────────────────────────────────┐   │
-│  │           4-Op FM Voice Manager                 │   │
-│  │  (8 algorithms, per-operator envelopes)         │   │
+│  │      6-Op / 4-Op FM Voice Manager               │   │
+│  │  (32 DX7 algorithms, per-operator envelopes)    │   │
 │  └─────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────┘
                          │
@@ -142,12 +147,13 @@ npm run dev
 
 ## Roadmap
 
-- [ ] 6-operator FM with 32 DX7 algorithms
-- [ ] Filter slope selector (6/12/24 dB/oct)
+- [x] 6-operator FM with 32 DX7 algorithms
+- [x] Filter slope selector (6/12/24 dB/oct)
 - [ ] Arpeggiator integration with synth panels
 - [ ] MIDI CC mapping
 - [ ] Patch export/import
 - [ ] AudioWorklet migration (from ScriptProcessorNode)
+- [ ] DX7 SYX preset import for 6-OP FM
 
 ## License
 
