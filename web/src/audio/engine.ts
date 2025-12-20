@@ -5,6 +5,9 @@ import { EffectsChain, EffectParams, defaultEffectParams } from './effects';
 
 export type Waveform = 'sine' | 'saw' | 'square' | 'triangle';
 
+// Filter slope options: 6dB/oct (1-pole), 12dB/oct (2-pole), 24dB/oct (4-pole)
+export type FilterSlope = 0 | 1 | 2;  // 0=6dB, 1=12dB, 2=24dB
+
 export interface SynthParams {
   osc1Waveform: Waveform;
   osc1Level: number;
@@ -18,6 +21,7 @@ export interface SynthParams {
   fmRatio: number;   // Modulator:Carrier ratio (0.25 - 8)
   filterCutoff: number;
   filterResonance: number;
+  filterSlope: FilterSlope;  // 0=6dB/oct, 1=12dB/oct, 2=24dB/oct
   filterEnvAmount: number;
   ampAttack: number;
   ampDecay: number;
@@ -45,6 +49,7 @@ export const defaultParams: SynthParams = {
   fmRatio: 2.0,    // Klassinen 2:1 ratio
   filterCutoff: 5000,
   filterResonance: 0.3,
+  filterSlope: 2,  // 24dB/oct (Moog-style)
   filterEnvAmount: 0.5,
   ampAttack: 0.01,
   ampDecay: 0.1,
@@ -133,6 +138,7 @@ export class AudioEngine {
     this.synth.setFmRatio(this.params.fmRatio);
     this.synth.setFilterCutoff(this.params.filterCutoff);
     this.synth.setFilterResonance(this.params.filterResonance);
+    this.synth.setFilterSlope(this.params.filterSlope);
     this.synth.setFilterEnvAmount(this.params.filterEnvAmount);
     this.synth.setAmpEnvelope(
       this.params.ampAttack,
@@ -223,6 +229,9 @@ export class AudioEngine {
         break;
       case 'filterResonance':
         this.synth.setFilterResonance(value as number);
+        break;
+      case 'filterSlope':
+        this.synth.setFilterSlope(value as number);
         break;
       case 'filterEnvAmount':
         this.synth.setFilterEnvAmount(value as number);

@@ -149,6 +149,12 @@ impl Ossian19Synth {
         self.synth.set_filter_resonance(resonance);
     }
 
+    /// Set filter slope (0 = 6dB/oct, 1 = 12dB/oct, 2 = 24dB/oct)
+    #[wasm_bindgen(js_name = setFilterSlope)]
+    pub fn set_filter_slope(&mut self, slope: u8) {
+        self.synth.set_filter_slope(ossian19_core::FilterSlope::from_u8(slope));
+    }
+
     #[wasm_bindgen(js_name = setFilterEnvAmount)]
     pub fn set_filter_env_amount(&mut self, amount: f32) {
         self.synth.set_filter_env_amount(amount);

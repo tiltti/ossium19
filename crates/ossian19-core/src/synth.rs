@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::filter::FilterType;
+use crate::filter::{FilterType, FilterSlope};
 use crate::oscillator::{Waveform, SubWaveform};
 use crate::voice::VoiceManager;
 
@@ -38,6 +38,7 @@ pub struct SynthParams {
 
     // Low-pass filter
     pub filter_type: FilterType,
+    pub filter_slope: FilterSlope,  // 6/12/24 dB/oct
     pub filter_cutoff: f32,
     pub filter_resonance: f32,
     pub filter_env_amount: f32,
@@ -80,6 +81,7 @@ impl Default for SynthParams {
             // HPF (Juno-6 style)
             hpf_cutoff: 20.0,  // Essentially off (lowest)
             filter_type: FilterType::LowPass,
+            filter_slope: FilterSlope::Pole4,  // 24 dB/oct (classic Moog)
             filter_cutoff: 5000.0,
             filter_resonance: 0.3,
             filter_env_amount: 0.5,
@@ -147,6 +149,7 @@ impl Synth {
         self.voice_manager.set_fm_amount(self.params.fm_amount);
         self.voice_manager.set_fm_ratio(self.params.fm_ratio);
         self.voice_manager.set_filter_resonance(self.params.filter_resonance);
+        self.voice_manager.set_filter_slope(self.params.filter_slope);
         self.voice_manager.set_filter_env_amount(self.params.filter_env_amount);
         self.voice_manager.set_amp_envelope(
             self.params.amp_attack,
@@ -346,6 +349,11 @@ impl Synth {
     pub fn set_filter_resonance(&mut self, resonance: f32) {
         self.params.filter_resonance = resonance.clamp(0.0, 1.0);
         self.voice_manager.set_filter_resonance(resonance);
+    }
+
+    pub fn set_filter_slope(&mut self, slope: FilterSlope) {
+        self.params.filter_slope = slope;
+        self.voice_manager.set_filter_slope(slope);
     }
 
     pub fn set_filter_env_amount(&mut self, amount: f32) {

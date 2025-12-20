@@ -362,6 +362,12 @@ impl VoiceManager {
         }
     }
 
+    pub fn set_filter_slope(&mut self, slope: crate::filter::FilterSlope) {
+        for voice in &mut self.voices {
+            voice.filter.set_slope(slope);
+        }
+    }
+
     pub fn set_filter_env_amount(&mut self, amount: f32) {
         for voice in &mut self.voices {
             voice.filter_env_amount = amount.clamp(0.0, 1.0);

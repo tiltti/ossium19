@@ -402,6 +402,7 @@ export function SynthPanel({ theme = THEMES.classic, onPanic }: SynthPanelProps)
     setFmRatio,
     setFilterCutoff,
     setFilterResonance,
+    setFilterSlope,
     setFilterEnvAmount,
     setMasterVolume,
     setReverbMix,
@@ -712,7 +713,7 @@ export function SynthPanel({ theme = THEMES.classic, onPanic }: SynthPanelProps)
 
           {/* Filter */}
           <Section title="Filter">
-            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
               <Knob
                 value={params.filterCutoff}
                 min={20}
@@ -732,6 +733,37 @@ export function SynthPanel({ theme = THEMES.classic, onPanic }: SynthPanelProps)
                 onChange={setFilterResonance}
                 size={60}
               />
+              {/* Filter Slope Selector */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                <span style={{ fontSize: 9, color: '#888', marginBottom: 2 }}>SLOPE</span>
+                <div style={{ display: 'flex', gap: 2 }}>
+                  {([
+                    { value: 0, label: '6' },
+                    { value: 1, label: '12' },
+                    { value: 2, label: '24' },
+                  ] as const).map(({ value, label }) => (
+                    <button
+                      key={value}
+                      onClick={() => setFilterSlope(value)}
+                      style={{
+                        width: 28,
+                        height: 24,
+                        border: params.filterSlope === value ? '1px solid #64c8ff' : '1px solid #444',
+                        borderRadius: 3,
+                        background: params.filterSlope === value ? '#1a3a4a' : '#1a1a1a',
+                        color: params.filterSlope === value ? '#64c8ff' : '#888',
+                        fontSize: 10,
+                        fontWeight: params.filterSlope === value ? 'bold' : 'normal',
+                        cursor: 'pointer',
+                        transition: 'all 0.1s',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <span style={{ fontSize: 8, color: '#666' }}>dB/oct</span>
+              </div>
               <Knob
                 value={params.filterEnvAmount}
                 min={0}

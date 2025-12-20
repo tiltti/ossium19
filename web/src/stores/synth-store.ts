@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { audioEngine, SynthParams, defaultParams, Waveform, EffectParams, defaultEffectParams } from '../audio/engine';
+import { audioEngine, SynthParams, defaultParams, Waveform, FilterSlope, EffectParams, defaultEffectParams } from '../audio/engine';
 import { Preset, factoryPresets, getPresetsByCategory } from '../audio/presets';
 
 interface SynthState {
@@ -41,6 +41,7 @@ interface SynthState {
   setFmRatio: (ratio: number) => void;
   setFilterCutoff: (cutoff: number) => void;
   setFilterResonance: (resonance: number) => void;
+  setFilterSlope: (slope: FilterSlope) => void;
   setFilterEnvAmount: (amount: number) => void;
   setAmpEnvelope: (a: number, d: number, s: number, r: number) => void;
   setFilterEnvelope: (a: number, d: number, s: number, r: number) => void;
@@ -125,6 +126,7 @@ export const useSynthStore = create<SynthState>((set) => ({
     audioEngine.setParam('fmRatio', params.fmRatio);
     audioEngine.setParam('filterCutoff', params.filterCutoff);
     audioEngine.setParam('filterResonance', params.filterResonance);
+    audioEngine.setParam('filterSlope', params.filterSlope ?? 2);
     audioEngine.setParam('filterEnvAmount', params.filterEnvAmount);
     audioEngine.setParam('ampAttack', params.ampAttack);
     audioEngine.setParam('ampDecay', params.ampDecay);
@@ -173,6 +175,7 @@ export const useSynthStore = create<SynthState>((set) => ({
     audioEngine.setParam('fmRatio', params.fmRatio);
     audioEngine.setParam('filterCutoff', params.filterCutoff);
     audioEngine.setParam('filterResonance', params.filterResonance);
+    audioEngine.setParam('filterSlope', params.filterSlope ?? 2);
     audioEngine.setParam('filterEnvAmount', params.filterEnvAmount);
     audioEngine.setParam('ampAttack', params.ampAttack);
     audioEngine.setParam('ampDecay', params.ampDecay);
@@ -252,6 +255,11 @@ export const useSynthStore = create<SynthState>((set) => ({
   setFilterResonance: (resonance) => {
     audioEngine.setParam('filterResonance', resonance);
     set((state) => ({ params: { ...state.params, filterResonance: resonance } }));
+  },
+
+  setFilterSlope: (slope) => {
+    audioEngine.setParam('filterSlope', slope);
+    set((state) => ({ params: { ...state.params, filterSlope: slope } }));
   },
 
   setFilterEnvAmount: (amount) => {
