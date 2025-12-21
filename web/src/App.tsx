@@ -247,23 +247,6 @@ export function App() {
               DRUMS {drumIsPlaying && '●'}
             </button>
             <button
-              onClick={() => setAppMode('settings')}
-              style={{
-                padding: '8px 20px',
-                border: appMode === 'settings' ? `2px solid ${theme.textMuted}` : `2px solid ${theme.border}`,
-                borderRadius: theme.button.borderRadius,
-                background: appMode === 'settings' ? theme.textMuted : 'transparent',
-                color: appMode === 'settings' ? '#000' : theme.textMuted,
-                cursor: 'pointer',
-                fontSize: 11,
-                fontWeight: 'bold',
-                letterSpacing: 1,
-                transition: 'all 0.15s',
-              }}
-            >
-              SETTINGS
-            </button>
-            <button
               onClick={() => setShowArp(!showArp)}
               style={{
                 padding: '8px 16px',
@@ -279,6 +262,23 @@ export function App() {
               }}
             >
               ARP {showArp ? '▼' : '▶'}
+            </button>
+            <button
+              onClick={() => setAppMode('settings')}
+              style={{
+                padding: '8px 20px',
+                border: appMode === 'settings' ? `2px solid ${theme.textMuted}` : `2px solid ${theme.border}`,
+                borderRadius: theme.button.borderRadius,
+                background: appMode === 'settings' ? theme.textMuted : 'transparent',
+                color: appMode === 'settings' ? '#000' : theme.textMuted,
+                cursor: 'pointer',
+                fontSize: 11,
+                fontWeight: 'bold',
+                letterSpacing: 1,
+                transition: 'all 0.15s',
+              }}
+            >
+              SETTINGS
             </button>
           </div>
 
