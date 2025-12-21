@@ -1,8 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
 import { useSettingsStore, LoadedBank } from '../stores/settings-store';
+import { useSynthStore } from '../stores/synth-store';
+import { useFm4OpStore } from '../stores/fm4op-store';
+import { useFm6OpStore } from '../stores/fm6op-store';
 import { WoodPanel } from './WoodPanel';
 import { DX7Voice } from '../audio/dx7-syx-parser';
 import { midiPlayer } from '../audio/midi-player';
+import { getFm4OpPresetsByCategory, Fm4OpPreset } from '../audio/fm4op-presets';
+import { dx7Factory6OpPresets } from '../audio/dx7-6op-presets';
+import { factoryPresets, Preset } from '../audio/presets';
+import { Fm6OpPreset } from '../stores/fm6op-store';
 
 const ACCENT_COLOR = '#ff8c42';
 
@@ -750,9 +757,150 @@ function MidiPlayerControls({ onNoteOn, onNoteOff }: MidiPlayerControlsProps) {
   );
 }
 
-function MidiSection({ onNoteOn, onNoteOff }: MidiPlayerControlsProps) {
+type MidiSynthType = 'subtractive' | 'fm4op' | 'fm6op';
+
+function MidiSection() {
+  const [selectedSynth, setSelectedSynth] = useState<MidiSynthType>('subtractive');
+
+  // Get synth stores
+  const { noteOn: subNoteOn, noteOff: subNoteOff, loadPreset: subLoadPreset, init: subInit, isInitialized: subInit_d } = useSynthStore();
+  const { noteOn: fm4NoteOn, noteOff: fm4NoteOff, loadPreset: fm4LoadPreset, init: fm4Init, isInitialized: fm4Init_d } = useFm4OpStore();
+  const { noteOn: fm6NoteOn, noteOff: fm6NoteOff, loadPreset: fm6LoadPreset, init: fm6Init, isInitialized: fm6Init_d } = useFm6OpStore();
+
+  // Get presets for each synth
+  const subPresets: Preset[] = factoryPresets;
+  const fm4Presets: Fm4OpPreset[] = Array.from(getFm4OpPresetsByCategory().values()).flat();
+  const fm6Presets: Fm6OpPreset[] = dx7Factory6OpPresets;
+
+  // Current preset state
+  const [subPresetName, setSubPresetName] = useState(subPresets[0]?.name || '');
+  const [fm4PresetName, setFm4PresetName] = useState(fm4Presets[0]?.name || '');
+  const [fm6PresetName, setFm6PresetName] = useState(fm6Presets[0]?.name || '');
+
+  // Initialize synth on selection
+  useEffect(() => {
+    if (selectedSynth === 'subtractive' && !subInit_d) {
+      subInit();
+    } else if (selectedSynth === 'fm4op' && !fm4Init_d) {
+      fm4Init();
+    } else if (selectedSynth === 'fm6op' && !fm6Init_d) {
+      fm6Init();
+    }
+  }, [selectedSynth, subInit_d, fm4Init_d, fm6Init_d, subInit, fm4Init, fm6Init]);
+
+  // Get the callbacks for currently selected synth
+  const getNoteCallbacks = () => {
+    switch (selectedSynth) {
+      case 'subtractive':
+        return { onNoteOn: subNoteOn, onNoteOff: subNoteOff };
+      case 'fm4op':
+        return { onNoteOn: fm4NoteOn, onNoteOff: fm4NoteOff };
+      case 'fm6op':
+        return { onNoteOn: fm6NoteOn, onNoteOff: fm6NoteOff };
+    }
+  };
+
+  const { onNoteOn, onNoteOff } = getNoteCallbacks();
+
+  // Handle preset change
+  const handlePresetChange = (presetName: string) => {
+    switch (selectedSynth) {
+      case 'subtractive': {
+        const preset = subPresets.find(p => p.name === presetName);
+        if (preset) {
+          subLoadPreset(preset);
+          setSubPresetName(presetName);
+        }
+        break;
+      }
+      case 'fm4op': {
+        const preset = fm4Presets.find(p => p.name === presetName);
+        if (preset) {
+          fm4LoadPreset(preset);
+          setFm4PresetName(presetName);
+        }
+        break;
+      }
+      case 'fm6op': {
+        const preset = fm6Presets.find(p => p.name === presetName);
+        if (preset) {
+          fm6LoadPreset(preset);
+          setFm6PresetName(presetName);
+        }
+        break;
+      }
+    }
+  };
+
+  // Get current presets and selected preset name
+  const getCurrentPresets = () => {
+    switch (selectedSynth) {
+      case 'subtractive':
+        return { presets: subPresets, selected: subPresetName };
+      case 'fm4op':
+        return { presets: fm4Presets, selected: fm4PresetName };
+      case 'fm6op':
+        return { presets: fm6Presets, selected: fm6PresetName };
+    }
+  };
+
+  const { presets, selected } = getCurrentPresets();
+
   return (
     <Section title="MIDI Player">
+      {/* Synth Selection */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div>
+          <div style={{ fontSize: 9, color: '#888', marginBottom: 4 }}>SYNTH</div>
+          <div style={{ display: 'flex', gap: 4 }}>
+            {(['subtractive', 'fm4op', 'fm6op'] as MidiSynthType[]).map((synth) => (
+              <button
+                key={synth}
+                onClick={() => setSelectedSynth(synth)}
+                style={{
+                  padding: '6px 12px',
+                  background: selectedSynth === synth
+                    ? `linear-gradient(180deg, ${ACCENT_COLOR} 0%, #cc6020 100%)`
+                    : 'linear-gradient(180deg, #333 0%, #222 100%)',
+                  border: selectedSynth === synth ? `1px solid ${ACCENT_COLOR}` : '1px solid #444',
+                  borderRadius: 3,
+                  color: selectedSynth === synth ? '#000' : '#888',
+                  cursor: 'pointer',
+                  fontSize: 10,
+                  fontWeight: 'bold',
+                }}
+              >
+                {synth === 'subtractive' ? 'SUB' : synth === 'fm4op' ? '4-OP' : '6-OP'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <div style={{ fontSize: 9, color: '#888', marginBottom: 4 }}>PRESET</div>
+          <select
+            value={selected}
+            onChange={(e) => handlePresetChange(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '6px 8px',
+              background: '#1a1a1a',
+              border: '1px solid #444',
+              borderRadius: 3,
+              color: ACCENT_COLOR,
+              fontSize: 11,
+              fontFamily: 'monospace',
+            }}
+          >
+            {presets.map((preset) => (
+              <option key={preset.name} value={preset.name}>
+                {preset.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       <MidiFileUploadZone />
       <MidiFileList />
       <div style={{ marginTop: 12 }}>
@@ -843,17 +991,8 @@ function AboutSection() {
   );
 }
 
-interface SettingsPanelProps {
-  onNoteOn?: (note: number, velocity: number) => void;
-  onNoteOff?: (note: number) => void;
-}
-
-export function SettingsPanel({ onNoteOn, onNoteOff }: SettingsPanelProps) {
+export function SettingsPanel() {
   const { clearAllBanks, clearAllMidiFiles } = useSettingsStore();
-
-  // Default no-op handlers if not provided
-  const handleNoteOn = onNoteOn || (() => {});
-  const handleNoteOff = onNoteOff || (() => {});
 
   return (
     <div
@@ -934,7 +1073,7 @@ export function SettingsPanel({ onNoteOn, onNoteOff }: SettingsPanelProps) {
               <BankList />
             </Section>
 
-            <MidiSection onNoteOn={handleNoteOn} onNoteOff={handleNoteOff} />
+            <MidiSection />
           </div>
 
           {/* Right column */}

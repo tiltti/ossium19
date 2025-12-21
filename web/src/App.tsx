@@ -326,7 +326,7 @@ export function App() {
 
       {/* Content based on mode */}
       {appMode === 'settings' ? (
-        <SettingsPanel onNoteOn={handleNoteOn} onNoteOff={handleNoteOff} />
+        <SettingsPanel />
       ) : appMode === 'drums' ? (
         <div style={{ padding: '20px', display: 'flex', justifyContent: 'center' }}>
           <DrumMachine accentColor={accentColor} theme={theme} onPanic={handleGlobalPanic} />
