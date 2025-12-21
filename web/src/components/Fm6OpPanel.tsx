@@ -12,7 +12,7 @@ import {
 } from './LcdScreen';
 import { useArpStore } from '../stores/arp-store';
 import { Theme, THEMES } from '../theme';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { WoodPanel } from './WoodPanel';
 import { Keyboard } from './Keyboard';
 import { PitchModWheels } from './PitchModWheels';
@@ -264,19 +264,41 @@ function KeyboardSection({ lcdColor }: { lcdColor: LcdColor }) {
   );
 }
 
-// Preset selector dropdown
-function PresetSelector({ theme }: { theme: Theme }) {
-  const { loadPreset, currentPreset } = useFm6OpStore();
-  const lcdAlt = theme.lcd.alt;
+// LCD-style FM preset selector (matching 4-OP FM style)
+function FmPresetSelector({ color = '#ff8c42' }: { color?: string }) {
+  const { currentPreset, loadPreset } = useFm6OpStore();
+  const presets = dx7Factory6OpPresets;
   const [isOpen, setIsOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Group presets by category
-  const categories = Array.from(new Set(dx7Factory6OpPresets.map(p => p.category)));
+  const categories = Array.from(new Set(presets.map(p => p.category)));
   const presetsByCategory = categories.reduce((acc, cat) => {
-    acc[cat] = dx7Factory6OpPresets.filter(p => p.category === cat);
+    acc[cat] = presets.filter(p => p.category === cat);
     return acc;
   }, {} as Record<string, Fm6OpPreset[]>);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+        setSelectedCategory(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const currentIndex = presets.findIndex(p => p.name === currentPreset);
+  const currentPresetObj = currentIndex >= 0 ? presets[currentIndex] : null;
+
+  const navigatePreset = (direction: -1 | 1) => {
+    const newIndex = currentIndex + direction;
+    if (newIndex >= 0 && newIndex < presets.length) {
+      loadPreset(presets[newIndex]);
+    }
+  };
 
   const handlePresetSelect = (preset: Fm6OpPreset) => {
     loadPreset(preset);
@@ -285,55 +307,81 @@ function PresetSelector({ theme }: { theme: Theme }) {
   };
 
   return (
-    <div style={{ position: 'relative' }}>
-      <div style={{ fontSize: 9, color: LCD_TEXT_COLORS[lcdAlt].fg, letterSpacing: 1, marginBottom: 4 }}>PRESET</div>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
+    <div ref={dropdownRef} style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+      <div
         style={{
-          width: 160,
-          height: 28,
-          background: 'linear-gradient(180deg, #222 0%, #111 100%)',
-          border: '1px solid #444',
-          borderRadius: 4,
-          color: '#ff8c42',
-          fontSize: 11,
-          fontWeight: 'bold',
-          cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 10px',
-          fontFamily: 'monospace',
+          background: '#0a0f0a',
+          border: '2px solid #1a1a1a',
+          borderRadius: 4,
+          padding: '4px 8px',
+          boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.8), 0 1px 0 #333',
         }}
       >
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {currentPreset || 'SELECT...'}
-        </span>
-        <span style={{ color: '#666' }}>▼</span>
-      </button>
+        <div style={{ fontSize: 9, color: `${color}88`, fontFamily: 'monospace', letterSpacing: 1, marginRight: 8, textTransform: 'uppercase' }}>
+          {currentPresetObj?.category || 'INIT'}
+        </div>
+        <div style={{ fontSize: 10, color: `${color}66`, fontFamily: 'monospace', marginRight: 6 }}>
+          {String(currentIndex + 1).padStart(2, '0')}
+        </div>
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            padding: '2px 8px',
+            fontSize: 12,
+            fontFamily: 'monospace',
+            fontWeight: 'bold',
+            color: color,
+            textShadow: `0 0 8px ${color}66`,
+            cursor: 'pointer',
+            minWidth: 120,
+            textAlign: 'left',
+          }}
+        >
+          {currentPreset || 'INIT'}
+          <span style={{ marginLeft: 8, fontSize: 8 }}>{isOpen ? '▲' : '▼'}</span>
+        </button>
+      </div>
+      <button
+        onClick={() => navigatePreset(-1)}
+        disabled={currentIndex <= 0}
+        style={{
+          width: 24, height: 24, border: '1px solid #333', borderRadius: 3,
+          background: currentIndex <= 0 ? '#1a1a1a' : '#252525',
+          color: currentIndex <= 0 ? '#333' : '#888',
+          cursor: currentIndex <= 0 ? 'not-allowed' : 'pointer',
+          fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}
+      >◀</button>
+      <button
+        onClick={() => navigatePreset(1)}
+        disabled={currentIndex >= presets.length - 1}
+        style={{
+          width: 24, height: 24, border: '1px solid #333', borderRadius: 3,
+          background: currentIndex >= presets.length - 1 ? '#1a1a1a' : '#252525',
+          color: currentIndex >= presets.length - 1 ? '#333' : '#888',
+          cursor: currentIndex >= presets.length - 1 ? 'not-allowed' : 'pointer',
+          fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}
+      >▶</button>
       {isOpen && (
         <div
           style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            zIndex: 1000,
-            background: '#1a1a1a',
-            border: '1px solid #444',
-            borderRadius: 4,
-            marginTop: 2,
-            minWidth: 160,
-            maxHeight: 300,
-            overflow: 'auto',
+            position: 'absolute', top: '100%', left: 0, marginTop: 4,
+            background: '#1a1a1a', border: '1px solid #333', borderRadius: 6,
+            padding: 8, zIndex: 1000, minWidth: 220, maxHeight: 300, overflowY: 'auto',
             boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
           }}
         >
           {selectedCategory === null ? (
             // Category list
-            categories.map((cat) => (
+            categories.map((category) => (
               <div
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
+                key={category}
+                onClick={() => setSelectedCategory(category)}
                 style={{
                   padding: '6px 10px',
                   cursor: 'pointer',
@@ -347,8 +395,8 @@ function PresetSelector({ theme }: { theme: Theme }) {
                 onMouseEnter={(e) => (e.currentTarget.style.background = '#333')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
               >
-                <span>{cat}</span>
-                <span style={{ color: '#666', fontSize: 9 }}>{presetsByCategory[cat].length} ▶</span>
+                <span>{category}</span>
+                <span style={{ color: '#666', fontSize: 9 }}>{presetsByCategory[category].length} ▶</span>
               </div>
             ))
           ) : (
@@ -360,7 +408,7 @@ function PresetSelector({ theme }: { theme: Theme }) {
                   padding: '6px 10px',
                   cursor: 'pointer',
                   borderBottom: '1px solid #444',
-                  color: '#ff8c42',
+                  color: color,
                   fontSize: 10,
                   fontWeight: 'bold',
                 }}
@@ -368,22 +416,19 @@ function PresetSelector({ theme }: { theme: Theme }) {
                 ◀ {selectedCategory}
               </div>
               {presetsByCategory[selectedCategory].map((preset) => (
-                <div
+                <button
                   key={preset.name}
                   onClick={() => handlePresetSelect(preset)}
                   style={{
-                    padding: '6px 10px',
-                    cursor: 'pointer',
-                    borderBottom: '1px solid #333',
-                    color: currentPreset === preset.name ? '#ff8c42' : '#ccc',
-                    fontSize: 10,
-                    fontFamily: 'monospace',
+                    display: 'block', width: '100%', padding: '6px 8px', border: 'none', borderRadius: 3,
+                    background: currentPreset === preset.name ? color : 'transparent',
+                    color: currentPreset === preset.name ? '#000' : '#aaa',
+                    cursor: 'pointer', fontSize: 11, textAlign: 'left',
+                    fontWeight: currentPreset === preset.name ? 'bold' : 'normal',
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = '#333')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
                   {preset.name}
-                </div>
+                </button>
               ))}
             </>
           )}
@@ -505,11 +550,8 @@ function DisplayPanel({ theme }: { theme: Theme }) {
   return (
     <div style={{ background: '#0a0a0a', borderRadius: 6, padding: 8, marginBottom: 8, border: '1px solid #333' }}>
       <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        {/* Left column: Info and Preset */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <InfoDisplay lcdColor={lcdInfo} />
-          <PresetSelector theme={theme} />
-        </div>
+        {/* Left column: Info */}
+        <InfoDisplay lcdColor={lcdInfo} />
 
         {/* Center: Large algorithm display */}
         <AlgorithmPanel theme={theme} />
@@ -575,10 +617,12 @@ export function Fm6OpPanel({ theme = THEMES.classic, onPanic }: Fm6OpPanelProps)
       <div style={{ padding: '10px 16px', maxWidth: 1400, background: 'linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%)', borderTop: '3px solid #444', borderBottom: '3px solid #222' }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <h2 style={{ margin: 0, color: '#ff8c42', fontSize: 18, fontWeight: 'bold', textShadow: '0 0 10px #ff8c4244', letterSpacing: 2 }}>
               6-OP FM <span style={{ fontSize: 10, color: '#888' }}>DX7</span>
             </h2>
+            {/* Preset selector in header - same style as 4-OP FM */}
+            <FmPresetSelector color="#ff8c42" />
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
             <button onClick={resetParams} style={{ background: 'linear-gradient(180deg, #666 0%, #444 100%)', border: '1px solid #888', borderRadius: 4, padding: '6px 12px', color: '#fff', cursor: 'pointer', fontWeight: 'bold', fontSize: 10, boxShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>RESET</button>
