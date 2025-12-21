@@ -172,15 +172,28 @@ export class AudioEngine {
     if (this.context?.state === 'suspended') {
       this.context.resume();
     }
-    this.synth?.noteOn(note, velocity);
+    try {
+      this.synth?.noteOn(note, velocity);
+    } catch (e) {
+      console.warn('noteOn error:', e);
+    }
   }
 
   noteOff(note: number): void {
-    this.synth?.noteOff(note);
+    try {
+      this.synth?.noteOff(note);
+    } catch (e) {
+      // Ignore errors when stopping notes that weren't started
+      // This can happen with MIDI files when synth isn't fully initialized
+    }
   }
 
   panic(): void {
-    this.synth?.panic();
+    try {
+      this.synth?.panic();
+    } catch (e) {
+      console.warn('panic error:', e);
+    }
   }
 
   setPitchBend(value: number): void {
