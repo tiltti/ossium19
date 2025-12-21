@@ -21,6 +21,7 @@ export function App() {
   const [appMode, setAppMode] = useState<AppMode>('subtractive');
   const [colorTheme, setColorTheme] = useState<ColorTheme>('classic');
   const [showArp, setShowArp] = useState(false);
+  const [lastSynthMode, setLastSynthMode] = useState<'subtractive' | 'fm4op' | 'fm6op'>('subtractive');
 
   const { isInitialized: subIsInit, init: subInit, noteOn: subNoteOn, noteOff: subNoteOff, panic: subPanic } = useSynthStore();
   const { isInitialized: fm4IsInit, init: fm4Init, noteOn: fm4NoteOn, noteOff: fm4NoteOff, panic: fm4Panic } = useFm4OpStore();
@@ -38,6 +39,24 @@ export function App() {
   // For synth modes, determine which is active
   const synthMode = appMode === 'fm6op' ? 'fm6op' : appMode === 'fm4op' ? 'fm4op' : 'subtractive';
   const isInitialized = synthMode === 'subtractive' ? subIsInit : synthMode === 'fm4op' ? fm4IsInit : fm6IsInit;
+  const isSynthMode = appMode === 'subtractive' || appMode === 'fm4op' || appMode === 'fm6op';
+
+  // Track last synth mode
+  useEffect(() => {
+    if (isSynthMode) {
+      setLastSynthMode(appMode as 'subtractive' | 'fm4op' | 'fm6op');
+    }
+  }, [appMode, isSynthMode]);
+
+  // Handle ARP button click - if not on synth, switch to last synth mode
+  const handleArpClick = () => {
+    if (!isSynthMode) {
+      setAppMode(lastSynthMode);
+      setShowArp(true);
+    } else {
+      setShowArp(!showArp);
+    }
+  };
 
   const theme = COLOR_THEMES[colorTheme];
 
@@ -247,13 +266,13 @@ export function App() {
               DRUMS {drumIsPlaying && '●'}
             </button>
             <button
-              onClick={() => setShowArp(!showArp)}
+              onClick={handleArpClick}
               style={{
                 padding: '8px 16px',
-                border: showArp ? `2px solid #64c8ff` : `2px solid ${theme.border}`,
+                border: showArp && isSynthMode ? `2px solid #64c8ff` : `2px solid ${theme.border}`,
                 borderRadius: theme.button.borderRadius,
-                background: showArp ? '#64c8ff' : 'transparent',
-                color: showArp ? '#000' : theme.textMuted,
+                background: showArp && isSynthMode ? '#64c8ff' : 'transparent',
+                color: showArp && isSynthMode ? '#000' : theme.textMuted,
                 cursor: 'pointer',
                 fontSize: 11,
                 fontWeight: 'bold',
@@ -261,7 +280,7 @@ export function App() {
                 transition: 'all 0.15s',
               }}
             >
-              ARP {showArp ? '▼' : '▶'}
+              ARP {showArp && isSynthMode ? '▼' : '▶'}
             </button>
             <button
               onClick={() => setAppMode('settings')}
