@@ -634,7 +634,9 @@ function DisplayPanel({ theme }: { theme: Theme }) {
           <div style={{ fontSize: 9, color: LCD_TEXT_COLORS[lcdAlt].fg, letterSpacing: 1, marginBottom: 4 }}>
             SPECTRUM
           </div>
-          <SpectrumDisplay analyser={analyser} width={180} height={90} color={lcdAlt} barCount={32} />
+          <div style={{ width: 180, height: 90, background: '#0a0a0f', borderRadius: 4 }}>
+            <SpectrumDisplay analyser={analyser} color={lcdAlt} barCount={32} />
+          </div>
         </div>
 
         {/* Audio Level Meter */}

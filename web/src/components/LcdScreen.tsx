@@ -337,10 +337,9 @@ export function WaveformDisplay({
   );
 }
 
-// Spectrum analyzer
+// Spectrum analyzer - fully responsive, fills container
 interface SpectrumDisplayProps {
   analyser: AnalyserNode | null;
-  width?: number;
   height?: number;
   color?: LcdColor;
   barCount?: number;
@@ -348,15 +347,37 @@ interface SpectrumDisplayProps {
 
 export function SpectrumDisplay({
   analyser,
-  width = 200,
   height = 80,
   color = 'amber',
-  barCount = 24,
+  barCount = 64,
 }: SpectrumDisplayProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
   const peaksRef = useRef<number[]>(new Array(barCount).fill(0));
+  const sizeRef = useRef({ width: 300, height });
   const colors = LCD_COLORS[color];
+
+  // Resize observer to track container size
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const updateSize = () => {
+      const rect = container.getBoundingClientRect();
+      sizeRef.current = { width: Math.floor(rect.width), height: Math.floor(rect.height) };
+      if (canvasRef.current) {
+        canvasRef.current.width = sizeRef.current.width;
+        canvasRef.current.height = sizeRef.current.height;
+      }
+    };
+
+    const resizeObserver = new ResizeObserver(updateSize);
+    resizeObserver.observe(container);
+    updateSize();
+
+    return () => resizeObserver.disconnect();
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -369,6 +390,8 @@ export function SpectrumDisplay({
     const dataArray = new Uint8Array(bufferLength);
 
     const animate = () => {
+      const { width, height } = sizeRef.current;
+
       if (analyser) {
         analyser.getByteFrequencyData(dataArray);
       }
@@ -376,7 +399,7 @@ export function SpectrumDisplay({
       ctx.fillStyle = colors.bg;
       ctx.fillRect(0, 0, width, height);
 
-      const barWidth = Math.floor((width - 4) / barCount) - 1;
+      const barWidth = Math.max(2, Math.floor((width - 4) / barCount) - 1);
       const padding = 2;
 
       for (let i = 0; i < barCount; i++) {
@@ -411,7 +434,7 @@ export function SpectrumDisplay({
           ctx.fillRect(x, segY, barWidth, segmentHeight - 1);
         }
 
-        // Peak indicator - sharper
+        // Peak indicator
         ctx.fillStyle = colors.fg;
         ctx.fillRect(x, peakY, barWidth, 1);
       }
@@ -426,17 +449,15 @@ export function SpectrumDisplay({
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [analyser, width, height, colors, barCount]);
+  }, [analyser, colors, barCount]);
 
   return (
-    <LcdScreen width={width} height={height} color={color}>
+    <div ref={containerRef} style={{ width: '100%', height: '100%' }}>
       <canvas
         ref={canvasRef}
-        width={width}
-        height={height}
-        style={{ width: '100%', height: '100%', imageRendering: 'pixelated' }}
+        style={{ width: '100%', height: '100%', display: 'block' }}
       />
-    </LcdScreen>
+    </div>
   );
 }
 

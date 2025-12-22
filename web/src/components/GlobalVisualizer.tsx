@@ -657,15 +657,13 @@ export function GlobalVisualizer({ mode, lcdMain = 'green', lcdAlt = 'amber', au
       <div style={{ flex: 2, minWidth: 200 }}>
         <div style={labelStyle}>SPECTRUM</div>
         <div style={frameStyle}>
-          <LcdScreen width="100%" height={sectionHeight} color={lcdAlt} pixelSize={1}>
+          <div style={{ height: sectionHeight }}>
             <SpectrumDisplay
               analyser={analyser}
-              width={350}
-              height={sectionHeight - 4}
               color={lcdAlt}
               barCount={64}
             />
-          </LcdScreen>
+          </div>
         </div>
       </div>
 
