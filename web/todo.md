@@ -1,5 +1,15 @@
 # OSSIAN-19 TODO
 
+## Future Features
+
+### Audio Unit Plugin (Logic Pro)
+Convert OSSIAN-19 to native AU plugin using nih-plug:
+- [ ] Extract synth-core to separate Rust crate (no WASM bindings)
+- [ ] Add nih-plug dependency and implement Plugin trait
+- [ ] Create native UI (egui or iced)
+- [ ] Build AU/VST3/CLAP bundle
+- [ ] Test in Logic Pro
+
 ## Known Issues
 
 ### OSSIAN SPACE Reverb Not Connected
