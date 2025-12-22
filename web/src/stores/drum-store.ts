@@ -273,6 +273,7 @@ interface DrumStore {
   ctx: AudioContext | null;
   drumSynth: DrumSynth | null;
   spaceReverb: SpaceReverb | null;
+  panNode: StereoPannerNode | null;
 
   // Playback state
   isPlaying: boolean;
@@ -326,6 +327,9 @@ interface DrumStore {
 
   // OSSIAN SPACE reverb
   setSpaceReverbParams: (params: SpaceReverbParams) => void;
+
+  // Pan control
+  setPan: (value: number) => void;
 }
 
 export const useDrumStore = create<DrumStore>((set, get) => {
@@ -336,6 +340,7 @@ export const useDrumStore = create<DrumStore>((set, get) => {
     ctx: null,
     drumSynth: null,
     spaceReverb: null,
+    panNode: null,
     isPlaying: false,
     currentStep: 0,
     bpm: 120,
@@ -360,9 +365,13 @@ export const useDrumStore = create<DrumStore>((set, get) => {
       const ctx = new AudioContext();
       await ctx.resume();
 
+      // Create pan node
+      const panNode = ctx.createStereoPanner();
+      panNode.connect(ctx.destination);
+
       // Create OSSIAN SPACE reverb
       const spaceReverb = new SpaceReverb(ctx);
-      spaceReverb.getOutput().connect(ctx.destination);
+      spaceReverb.getOutput().connect(panNode);
 
       // Route drums through SpaceReverb
       const drumSynth = new DrumSynth(ctx, spaceReverb.getInput());
@@ -377,6 +386,7 @@ export const useDrumStore = create<DrumStore>((set, get) => {
         ctx,
         drumSynth,
         spaceReverb,
+        panNode,
       });
     },
 
@@ -577,6 +587,13 @@ export const useDrumStore = create<DrumStore>((set, get) => {
     setSpaceReverbParams: (params: SpaceReverbParams) => {
       const { spaceReverb } = get();
       spaceReverb?.setParams(params);
+    },
+
+    setPan: (value: number) => {
+      const { panNode, ctx } = get();
+      if (panNode && ctx) {
+        panNode.pan.setValueAtTime(Math.max(-1, Math.min(1, value)), ctx.currentTime);
+      }
     },
   };
 });

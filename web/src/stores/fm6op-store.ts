@@ -55,6 +55,7 @@ interface Fm6OpState {
 
   // Master
   setMasterVolume: (volume: number) => void;
+  setPan: (value: number) => void;
 
   // Effects
   setReverbMix: (mix: number) => void;
@@ -267,6 +268,10 @@ export const useFm6OpStore = create<Fm6OpState>((set, get) => ({
     set((state) => ({
       params: { ...state.params, masterVolume: volume },
     }));
+  },
+
+  setPan: (value: number) => {
+    fm6opEngine.setPan(value);
   },
 
   // Effects

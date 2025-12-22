@@ -70,6 +70,7 @@ export class AudioEngine {
   private analyser: AnalyserNode | null = null;
   private effectsChain: EffectsChain | null = null;
   private spaceReverb: SpaceReverb | null = null;
+  private panNode: StereoPannerNode | null = null;
   private isInitialized = false;
   private params: SynthParams = { ...defaultParams };
   private effectParams: EffectParams = { ...defaultEffectParams };
@@ -120,11 +121,15 @@ export class AudioEngine {
       this.synth.processStereo(left, right);
     };
 
-    // Route: ScriptNode -> Effects -> SpaceReverb -> Analyser -> Destination
+    // Create pan node
+    this.panNode = this.context.createStereoPanner();
+
+    // Route: ScriptNode -> Effects -> SpaceReverb -> Analyser -> Pan -> Destination
     this.scriptNode.connect(this.effectsChain.getInput());
     this.effectsChain.getOutput().connect(this.spaceReverb.getInput());
     this.spaceReverb.getOutput().connect(this.analyser);
-    this.analyser.connect(this.context.destination);
+    this.analyser.connect(this.panNode);
+    this.panNode.connect(this.context.destination);
 
     this.isInitialized = true;
   }
@@ -329,6 +334,13 @@ export class AudioEngine {
     this.spaceReverb?.setParams(params);
   }
 
+  // Pan control (-1 = left, 0 = center, 1 = right)
+  setPan(value: number): void {
+    if (this.panNode) {
+      this.panNode.pan.setValueAtTime(Math.max(-1, Math.min(1, value)), this.context?.currentTime ?? 0);
+    }
+  }
+
   dispose(): void {
     this.panic();
 
@@ -345,6 +357,11 @@ export class AudioEngine {
     if (this.spaceReverb) {
       this.spaceReverb.dispose();
       this.spaceReverb = null;
+    }
+
+    if (this.panNode) {
+      this.panNode.disconnect();
+      this.panNode = null;
     }
 
     if (this.analyser) {

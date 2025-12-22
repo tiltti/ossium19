@@ -12,12 +12,6 @@ Convert OSSIAN-19 to native AU plugin using nih-plug:
 
 ## Known Issues
 
-### Mixer Pan Controls Not Connected
-- Pan knobs work and store state in MixerPanel
-- But pan values are never applied to the audio routing
-- Only volume/mute/solo affect the actual audio output
-- **Fix:** Add StereoPannerNode to each channel's audio path
-
 ### Deprecated ScriptProcessorNode
 - Used in `fm6op-engine.ts` and `engine.ts`
 - Should be migrated to AudioWorklet for better performance
@@ -30,6 +24,7 @@ Convert OSSIAN-19 to native AU plugin using nih-plug:
 
 ## Completed
 
+- [x] Mixer pan controls connected to audio (StereoPannerNode in all engines)
 - [x] OSSIAN SPACE reverb connected to all audio engines (synth, fm6op, drums)
 - [x] SYX preset loading - clicking loads into FM synth and switches tab
 - [x] Console.log cleanup in production stores and engines

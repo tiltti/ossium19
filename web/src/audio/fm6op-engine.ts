@@ -96,6 +96,7 @@ export class Fm6OpEngine {
   private analyser: AnalyserNode | null = null;
   private effectsChain: EffectsChain | null = null;
   private spaceReverb: SpaceReverb | null = null;
+  private panNode: StereoPannerNode | null = null;
   private isInitialized = false;
   private params: Fm6OpParams = JSON.parse(JSON.stringify(defaultFm6OpParams));
   private effectParams: EffectParams = { ...defaultEffectParams };
@@ -139,11 +140,15 @@ export class Fm6OpEngine {
       this.synth.processStereo(left, right);
     };
 
-    // Audio routing: scriptNode → effectsChain → spaceReverb → analyser → destination
+    // Create pan node
+    this.panNode = this.context.createStereoPanner();
+
+    // Audio routing: scriptNode → effectsChain → spaceReverb → analyser → pan → destination
     this.scriptNode.connect(this.effectsChain.getInput());
     this.effectsChain.getOutput().connect(this.spaceReverb.getInput());
     this.spaceReverb.getOutput().connect(this.analyser);
-    this.analyser.connect(this.context.destination);
+    this.analyser.connect(this.panNode);
+    this.panNode.connect(this.context.destination);
 
     this.isInitialized = true;
   }
@@ -355,6 +360,13 @@ export class Fm6OpEngine {
     this.spaceReverb?.setParams(params);
   }
 
+  // Pan control (-1 = left, 0 = center, 1 = right)
+  setPan(value: number): void {
+    if (this.panNode) {
+      this.panNode.pan.setValueAtTime(Math.max(-1, Math.min(1, value)), this.context?.currentTime ?? 0);
+    }
+  }
+
   dispose(): void {
     this.panic();
 
@@ -371,6 +383,11 @@ export class Fm6OpEngine {
     if (this.spaceReverb) {
       this.spaceReverb.dispose();
       this.spaceReverb = null;
+    }
+
+    if (this.panNode) {
+      this.panNode.disconnect();
+      this.panNode = null;
     }
 
     if (this.analyser) {

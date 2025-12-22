@@ -838,6 +838,14 @@ export function MixerPanel({ theme }: MixerPanelProps) {
     applyVolumes(masterVolume, channels, masterMuted);
   }, [masterVolume, channels, masterMuted, applyVolumes]);
 
+  // Apply pan values
+  useEffect(() => {
+    synthStore.setPan(channels.synth.pan);
+    fm6Store.setPan(channels.fm.pan);
+    drumStore.setPan(channels.drums.pan);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channels.synth.pan, channels.fm.pan, channels.drums.pan]);
+
   return (
     <div
       style={{

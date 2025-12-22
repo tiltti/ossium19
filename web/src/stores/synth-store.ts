@@ -48,6 +48,7 @@ interface SynthState {
   setAmpEnvelope: (a: number, d: number, s: number, r: number) => void;
   setFilterEnvelope: (a: number, d: number, s: number, r: number) => void;
   setMasterVolume: (volume: number) => void;
+  setPan: (value: number) => void;
 
   // Effect parameter setters
   setReverbMix: (mix: number) => void;
@@ -313,6 +314,10 @@ export const useSynthStore = create<SynthState>((set) => ({
   setMasterVolume: (volume) => {
     audioEngine.setParam('masterVolume', volume);
     set((state) => ({ params: { ...state.params, masterVolume: volume } }));
+  },
+
+  setPan: (value) => {
+    audioEngine.setPan(value);
   },
 
   // Effect parameter setters
