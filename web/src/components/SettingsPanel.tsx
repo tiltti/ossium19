@@ -10,6 +10,7 @@ import { getFm4OpPresetsByCategory, Fm4OpPreset } from '../audio/fm4op-presets';
 import { dx7Factory6OpPresets } from '../audio/dx7-6op-presets';
 import { factoryPresets, Preset } from '../audio/presets';
 import { Fm6OpPreset } from '../stores/fm6op-store';
+import { VERSION } from '../version';
 
 const ACCENT_COLOR = '#ff8c42';
 
@@ -942,7 +943,7 @@ function AboutSection() {
         >
           OSSIAN-19
         </h2>
-        <div style={{ color: '#888', fontSize: 11, marginBottom: 4 }}>Version 0.1.0</div>
+        <div style={{ color: '#888', fontSize: 11, marginBottom: 4 }}>Version {VERSION}</div>
         <div style={{ color: '#666', fontSize: 10, marginBottom: 8 }}>Tilt Industries</div>
         <div style={{ color: '#aaa', fontSize: 12, lineHeight: 1.5, marginBottom: 8 }}>
           Digital synthesizer with subtractive and FM synthesis
