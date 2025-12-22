@@ -87,18 +87,6 @@ export class Fm4OpEngine {
 
     this.synth = new Ossian19Fm4Op(sampleRate, 8);
 
-    // DEBUG: Test if WASM methods actually work
-    console.log('[Fm4OpEngine] Testing WASM methods...');
-    console.log('[Fm4OpEngine] setOpRatio exists:', typeof this.synth.setOpRatio);
-    console.log('[Fm4OpEngine] setOpLevel exists:', typeof this.synth.setOpLevel);
-    console.log('[Fm4OpEngine] setAlgorithm exists:', typeof this.synth.setAlgorithm);
-
-    // Expose synth globally for console testing (update on each init)
-    (window as unknown as { _fm4opSynth: Ossian19Fm4Op })._fm4opSynth = this.synth;
-    (window as unknown as { _fm4opEngine: Fm4OpEngine })._fm4opEngine = this;
-    console.log('[Fm4OpEngine] Synth exposed as window._fm4opSynth for debugging');
-    console.log('[Fm4OpEngine] Engine exposed as window._fm4opEngine');
-
     // Apply current params
     this.applyAllParams();
 
@@ -125,24 +113,15 @@ export class Fm4OpEngine {
     this.analyser.connect(this.context.destination);
 
     this.isInitialized = true;
-    console.log('[Fm4OpEngine] Initialized with 4-op FM synth');
   }
 
   private applyAllParams(): void {
-    if (!this.synth) {
-      console.warn('[Fm4OpEngine] applyAllParams: synth is null, skipping!');
-      return;
-    }
+    if (!this.synth) return;
 
-    const timestamp = Date.now();
-    console.log(`[Fm4OpEngine] applyAllParams @ ${timestamp}: applying to WASM`);
-    console.log(`[Fm4OpEngine] @ ${timestamp} Algorithm:`, this.params.algorithm);
     this.synth.setAlgorithm(this.params.algorithm);
 
     for (let i = 0; i < 4; i++) {
       const op = this.params.operators[i];
-      console.log(`[Fm4OpEngine] OP${i+1}: ratio=${op.ratio.toFixed(2)}, level=${op.level.toFixed(2)}, detune=${op.detune}, feedback=${op.feedback.toFixed(2)}`);
-      console.log(`[Fm4OpEngine] OP${i+1} ENV: A=${op.attack.toFixed(3)}, D=${op.decay.toFixed(2)}, S=${op.sustain.toFixed(2)}, R=${op.release.toFixed(2)}`);
       this.synth.setOpRatio(i, op.ratio);
       this.synth.setOpLevel(i, op.level);
       this.synth.setOpDetune(i, op.detune);
@@ -154,8 +133,6 @@ export class Fm4OpEngine {
       this.synth.setOpVelocitySens(i, op.velocitySens);
     }
 
-    console.log('[Fm4OpEngine] Filter:', this.params.filterEnabled, 'cutoff:', this.params.filterCutoff);
-    console.log('[Fm4OpEngine] Master volume:', this.params.masterVolume);
     this.synth.setFilterEnabled(this.params.filterEnabled);
     this.synth.setFilterCutoff(this.params.filterCutoff);
     this.synth.setFilterResonance(this.params.filterResonance);
@@ -175,8 +152,6 @@ export class Fm4OpEngine {
   }
 
   noteOn(note: number, velocity: number = 100): void {
-    console.log(`[Fm4OpEngine] noteOn: note=${note}, velocity=${velocity}, synth exists=${!!this.synth}`);
-    console.log(`[Fm4OpEngine] Current params: algo=${this.params.algorithm}, op1.ratio=${this.params.operators[0].ratio}, op1.level=${this.params.operators[0].level}`);
     if (this.context?.state === 'suspended') {
       this.context.resume();
     }
@@ -322,13 +297,6 @@ export class Fm4OpEngine {
 
   // Load preset
   loadParams(params: Fm4OpParams): void {
-    console.log('[Fm4OpEngine] loadParams called, synth exists:', !!this.synth, 'isInitialized:', this.isInitialized);
-    console.log('[Fm4OpEngine] Loading params:', {
-      algorithm: params.algorithm,
-      op0: { ratio: params.operators[0].ratio, level: params.operators[0].level },
-      op1: { ratio: params.operators[1].ratio, level: params.operators[1].level },
-    });
-
     // Deep copy operators to avoid reference issues
     this.params = {
       ...params,
