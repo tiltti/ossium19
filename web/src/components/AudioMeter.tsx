@@ -178,7 +178,6 @@ export function AudioMeter({ audioContext }: AudioMeterProps) {
   const voiceColor = getVoiceColor(stats.voiceCount);
   // Show values if we have an audioContext (even if suspended)
   const hasContext = !!audioContext;
-  const isRunning = stats.state === 'running';
 
   return (
     <div

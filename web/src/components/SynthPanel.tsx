@@ -6,8 +6,6 @@ import { PresetSelector } from './PresetSelector';
 import {
   LcdScreen,
   LcdColor,
-  SpectrumDisplay,
-  SevenSegmentDisplay,
 } from './LcdScreen';
 import { useArpStore } from '../stores/arp-store';
 import { Theme, THEMES } from '../theme';
@@ -212,11 +210,9 @@ function InfoDisplay({ lcdColor = 'blue' }: { lcdColor?: LcdColor }) {
   );
 }
 
-// Main display panel with oscilloscope and spectrum
+// Main display panel with oscilloscope
 function DisplayPanel({ theme }: { theme: Theme }) {
-  const { getAnalyser, getAudioContext, getEffectsOutput, isInitialized, params } = useSynthStore();
-  const { bpm } = useArpStore();
-  const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
+  const { getAudioContext, getEffectsOutput, isInitialized, params } = useSynthStore();
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
   const [effectsOutput, setEffectsOutput] = useState<AudioNode | null>(null);
   const lcdMain = theme.lcd.main;
@@ -225,11 +221,10 @@ function DisplayPanel({ theme }: { theme: Theme }) {
 
   useEffect(() => {
     if (isInitialized) {
-      setAnalyser(getAnalyser());
       setAudioContext(getAudioContext());
       setEffectsOutput(getEffectsOutput());
     }
-  }, [isInitialized, getAnalyser, getAudioContext, getEffectsOutput]);
+  }, [isInitialized, getAudioContext, getEffectsOutput]);
 
   return (
     <div
@@ -241,34 +236,18 @@ function DisplayPanel({ theme }: { theme: Theme }) {
         border: '1px solid #333',
       }}
     >
-      {/* Top row: Info + Visualizations + BPM */}
+      {/* Top row: Info + Visualizations */}
       <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 10 }}>
         {/* Info Display */}
         <InfoDisplay lcdColor={lcdInfo} />
 
-        {/* New Visualization Panel */}
+        {/* Visualization Panel */}
         <VisualizationPanel
           audioContext={audioContext}
           masterNode={effectsOutput}
           primaryColor={LCD_TEXT_COLORS[lcdMain].fg}
           secondaryColor={LCD_TEXT_COLORS[lcdAlt].fg}
         />
-
-        {/* Spectrum Analyzer */}
-        <div>
-          <div style={{ fontSize: 9, color: LCD_TEXT_COLORS[lcdAlt].fg, letterSpacing: 1, marginBottom: 4 }}>
-            SPECTRUM
-          </div>
-          <SpectrumDisplay analyser={analyser} width={200} height={90} color={lcdAlt} barCount={32} />
-        </div>
-
-        {/* BPM Display */}
-        <div>
-          <div style={{ fontSize: 9, color: '#ff4444', letterSpacing: 1, marginBottom: 4 }}>
-            BPM
-          </div>
-          <SevenSegmentDisplay value={bpm} digits={3} color="red" />
-        </div>
       </div>
 
       {/* Bottom row: Signal Routing */}

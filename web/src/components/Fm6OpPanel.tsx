@@ -5,10 +5,6 @@ import {
   LcdScreen,
   LcdColor,
   EnvelopeDisplay,
-  WaveformDisplay,
-  SpectrumDisplay,
-  AudioLevelMeter,
-  SevenSegmentDisplay,
 } from './LcdScreen';
 import { useArpStore } from '../stores/arp-store';
 import { Theme, THEMES } from '../theme';
@@ -536,16 +532,7 @@ function AlgorithmPanel({ theme }: { theme: Theme }) {
 
 // Display panel
 function DisplayPanel({ theme }: { theme: Theme }) {
-  const { getAnalyser, isInitialized } = useFm6OpStore();
-  const { bpm } = useArpStore();
-  const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
-  const lcdMain = theme.lcd.main;
-  const lcdAlt = theme.lcd.alt;
   const lcdInfo = theme.lcd.info;
-
-  useEffect(() => {
-    if (isInitialized) setAnalyser(getAnalyser());
-  }, [isInitialized, getAnalyser]);
 
   return (
     <div style={{ background: '#0a0a0a', borderRadius: 6, padding: 8, marginBottom: 8, border: '1px solid #333' }}>
@@ -555,26 +542,6 @@ function DisplayPanel({ theme }: { theme: Theme }) {
 
         {/* Center: Large algorithm display */}
         <AlgorithmPanel theme={theme} />
-
-        {/* Right: Visualizers */}
-        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
-          <div>
-            <div style={{ fontSize: 9, color: LCD_TEXT_COLORS[lcdMain].fg, letterSpacing: 1, marginBottom: 4 }}>WAVEFORM</div>
-            <WaveformDisplay analyser={analyser} width={120} height={70} color={lcdMain} />
-          </div>
-          <div>
-            <div style={{ fontSize: 9, color: LCD_TEXT_COLORS[lcdAlt].fg, letterSpacing: 1, marginBottom: 4 }}>SPECTRUM</div>
-            <SpectrumDisplay analyser={analyser} width={160} height={70} color={lcdAlt} barCount={32} />
-          </div>
-          <div>
-            <div style={{ fontSize: 9, color: LCD_TEXT_COLORS[lcdMain].fg, letterSpacing: 1, marginBottom: 4 }}>LVL</div>
-            <AudioLevelMeter analyser={analyser} width={25} height={70} color={lcdMain} />
-          </div>
-          <div>
-            <div style={{ fontSize: 9, color: '#ff4444', letterSpacing: 1, marginBottom: 4 }}>BPM</div>
-            <SevenSegmentDisplay value={bpm} digits={3} color="red" />
-          </div>
-        </div>
       </div>
     </div>
   );
