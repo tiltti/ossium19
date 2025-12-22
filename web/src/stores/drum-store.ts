@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { DrumSynth, DrumSound, DRUM_SOUNDS } from '../audio/drum-synth';
+import { DrumSynth, DrumSound, DrumKit, DRUM_SOUNDS, DRUM_KITS } from '../audio/drum-synth';
 
 const STEPS = 16;
 
@@ -7,6 +7,7 @@ export interface DrumPattern {
   name: string;
   tracks: Record<DrumSound, boolean[]>;
   velocities: Record<DrumSound, number[]>;
+  accents?: Record<DrumSound, boolean[]>;
 }
 
 // Create empty pattern
@@ -35,6 +36,15 @@ function createEmptyAccentPattern(): Record<DrumSound, boolean[]> {
 }
 
 // Classic drum patterns
+// Helper to create accent pattern for specific sounds
+function createAccentPattern(accents: Partial<Record<DrumSound, boolean[]>>): Record<DrumSound, boolean[]> {
+  const base = createEmptyAccentPattern();
+  Object.entries(accents).forEach(([sound, pattern]) => {
+    if (pattern) base[sound as DrumSound] = pattern;
+  });
+  return base;
+}
+
 const PRESET_PATTERNS: DrumPattern[] = [
   {
     name: 'Four on Floor',
@@ -52,6 +62,10 @@ const PRESET_PATTERNS: DrumPattern[] = [
       'cymbal': [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false],
     },
     velocities: createEmptyVelocities(),
+    accents: createAccentPattern({
+      'kick': [true, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false],
+      'clap': [false, false, false, false, true, false, false, false, false, false, false, false, true, false, false, false],
+    }),
   },
   {
     name: '808 House',
@@ -69,6 +83,11 @@ const PRESET_PATTERNS: DrumPattern[] = [
       'cymbal': [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false],
     },
     velocities: createEmptyVelocities(),
+    accents: createAccentPattern({
+      'kick': [true, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false],
+      'clap': [false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false],
+      'hihat-open': [false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false],
+    }),
   },
   {
     name: 'Boom Bap',
@@ -86,6 +105,10 @@ const PRESET_PATTERNS: DrumPattern[] = [
       'cymbal': [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false],
     },
     velocities: createEmptyVelocities(),
+    accents: createAccentPattern({
+      'kick': [true, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false],
+      'snare': [false, false, false, false, true, false, false, false, false, false, false, false, true, false, false, false],
+    }),
   },
   {
     name: 'Motown',
@@ -255,6 +278,9 @@ interface DrumStore {
   volume: number;
   swing: number;
 
+  // Kit state
+  currentKit: DrumKit;
+
   // Pattern state
   pattern: DrumPattern;
   currentPatternName: string;
@@ -276,6 +302,7 @@ interface DrumStore {
   setBpm: (bpm: number) => void;
   setVolume: (volume: number) => void;
   setSwing: (swing: number) => void;
+  setKit: (kit: DrumKit) => void;
   toggleStep: (sound: DrumSound, step: number) => void;
   setStepVelocity: (sound: DrumSound, step: number, velocity: number) => void;
   clearPattern: () => void;
@@ -286,11 +313,13 @@ interface DrumStore {
   toggleAccent: (sound: DrumSound, step: number) => void;
   setAccentAmount: (amount: number) => void;
   getPresetPatterns: () => DrumPattern[];
+  getAvailableKits: () => DrumKit[];
   panic: () => void;
 
   // Audio analysis
   getAnalyser: () => AnalyserNode | null;
   getAudioContext: () => AudioContext | null;
+  getEffectsOutput: () => AudioNode | null;
 }
 
 export const useDrumStore = create<DrumStore>((set, get) => {
@@ -305,6 +334,7 @@ export const useDrumStore = create<DrumStore>((set, get) => {
     bpm: 120,
     volume: 0.8,
     swing: 0,
+    currentKit: '808' as DrumKit,
     pattern: {
       name: 'Empty',
       tracks: createEmptyPattern(),
@@ -397,6 +427,14 @@ export const useDrumStore = create<DrumStore>((set, get) => {
       set({ swing: Math.max(0, Math.min(1, swing)) });
     },
 
+    setKit: (kit: DrumKit) => {
+      const { drumSynth } = get();
+      if (drumSynth) {
+        drumSynth.setKit(kit);
+      }
+      set({ currentKit: kit });
+    },
+
     toggleStep: (sound: DrumSound, step: number) => {
       set(state => {
         const newTracks = { ...state.pattern.tracks };
@@ -444,6 +482,7 @@ export const useDrumStore = create<DrumStore>((set, get) => {
           tracks: { ...pattern.tracks },
           velocities: { ...pattern.velocities },
         },
+        accentPattern: pattern.accents ? { ...pattern.accents } : createEmptyAccentPattern(),
         currentPatternName: pattern.name,
       });
     },
@@ -492,6 +531,8 @@ export const useDrumStore = create<DrumStore>((set, get) => {
 
     getPresetPatterns: () => PRESET_PATTERNS,
 
+    getAvailableKits: () => DRUM_KITS,
+
     panic: () => {
       // Stop playback
       if (intervalId) {
@@ -508,6 +549,11 @@ export const useDrumStore = create<DrumStore>((set, get) => {
 
     getAudioContext: () => {
       return get().ctx;
+    },
+
+    getEffectsOutput: () => {
+      const { drumSynth } = get();
+      return drumSynth?.getEffectsOutput() ?? null;
     },
   };
 });

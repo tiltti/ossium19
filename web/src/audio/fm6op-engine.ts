@@ -320,6 +320,14 @@ export class Fm6OpEngine {
     return this.analyser;
   }
 
+  getAudioContext(): AudioContext | null {
+    return this.context;
+  }
+
+  getEffectsOutput(): AudioNode | null {
+    return this.effectsChain?.getOutput() ?? null;
+  }
+
   getSampleRate(): number {
     return this.context?.sampleRate ?? 44100;
   }

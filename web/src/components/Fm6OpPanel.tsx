@@ -2,7 +2,6 @@ import { useFm6OpStore } from '../stores/fm6op-store';
 import { DX7_ALGORITHMS } from '../audio/fm6op-engine';
 import { Knob } from './Knob';
 import {
-  LcdScreen,
   LcdColor,
   EnvelopeDisplay,
 } from './LcdScreen';
@@ -157,64 +156,6 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-// Chord detection
-function detectChord(midiNotes: number[]): string {
-  if (midiNotes.length === 0) return '---';
-  const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-  if (midiNotes.length === 1) return notes[midiNotes[0] % 12];
-
-  const pitchClasses = [...new Set(midiNotes.map(n => n % 12))].sort((a, b) => a - b);
-  if (pitchClasses.length < 2) return notes[pitchClasses[0]];
-
-  for (const root of pitchClasses) {
-    const intervals = pitchClasses.map(p => (p - root + 12) % 12).sort((a, b) => a - b);
-    const intervalStr = intervals.join(',');
-    const chordTypes: Record<string, string> = {
-      '0,4,7': '', '0,3,7': 'm', '0,4,7,11': 'maj7', '0,3,7,10': 'm7', '0,4,7,10': '7',
-      '0,4,8': 'aug', '0,3,6': 'dim', '0,3,6,9': 'dim7', '0,2,7': 'sus2', '0,5,7': 'sus4',
-    };
-    if (chordTypes[intervalStr] !== undefined) return notes[root] + chordTypes[intervalStr];
-  }
-  return notes[pitchClasses[0]] + '(' + pitchClasses.length + ')';
-}
-
-// Info LCD
-function InfoDisplay({ lcdColor = 'green' }: { lcdColor?: LcdColor }) {
-  const { currentPreset, activeNotes, params } = useFm6OpStore();
-  const noteCount = activeNotes.size;
-  const midiNotes = Array.from(activeNotes).sort((a, b) => a - b);
-  const colors = LCD_TEXT_COLORS[lcdColor];
-
-  const noteNames = midiNotes.map((n) => {
-    const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-    return `${notes[n % 12]}${Math.floor(n / 12) - 1}`;
-  });
-
-  const chord = detectChord(midiNotes);
-
-  return (
-    <LcdScreen width={260} height={80} color={lcdColor} pixelSize={2}>
-      <div style={{ padding: 5, fontFamily: 'monospace', fontSize: 9, color: colors.fg, textShadow: `0 0 4px ${colors.fg}` }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-          <span><span style={{ color: colors.fgMuted }}>PRESET:</span> {currentPreset || 'INIT'}</span>
-        </div>
-        <div style={{ marginBottom: 3, display: 'flex', gap: 10 }}>
-          <span><span style={{ color: colors.fgMuted }}>ALG:</span> {params.algorithm + 1}</span>
-          <span><span style={{ color: colors.fgMuted }}>VOL:</span> {Math.round(params.masterVolume * 100)}%</span>
-          <span><span style={{ color: colors.fgMuted }}>FLT:</span> {params.filterEnabled ? 'ON' : 'OFF'}</span>
-        </div>
-        <div style={{ marginBottom: 3, display: 'flex', alignItems: 'baseline', gap: 6 }}>
-          <span style={{ color: colors.fgMuted }}>CHORD:</span>
-          <span style={{ color: colors.fgAccent, fontSize: 14, fontWeight: 'bold' }}>{chord}</span>
-          <span style={{ color: colors.fgMuted, fontSize: 8 }}>({noteCount} notes)</span>
-        </div>
-        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          <span style={{ color: colors.fgMuted }}>NOTES:</span> {noteCount > 0 ? noteNames.join(' ') : '---'}
-        </div>
-      </div>
-    </LcdScreen>
-  );
-}
 
 // Keyboard section
 function KeyboardSection({ lcdColor }: { lcdColor: LcdColor }) {
@@ -499,24 +440,25 @@ function AlgorithmPanel({ theme }: { theme: Theme }) {
         </button>
       </div>
 
-      {/* Algorithm quick select grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 2 }}>
+      {/* Algorithm quick select - all 32 on one row */}
+      <div style={{ display: 'flex', gap: 1 }}>
         {DX7_ALGORITHMS.map((algo) => (
           <button
             key={algo.id}
             onClick={() => setAlgorithm(algo.id)}
             title={algo.desc}
             style={{
-              width: 22,
-              height: 18,
+              minWidth: 16,
+              height: 16,
               border: params.algorithm === algo.id ? '1px solid #ff8c42' : '1px solid #333',
               borderRadius: 2,
               background: params.algorithm === algo.id ? '#ff8c42' : '#1a1a1a',
               color: params.algorithm === algo.id ? '#000' : '#666',
               cursor: 'pointer',
-              fontSize: 8,
+              fontSize: 7,
               fontWeight: 'bold',
               padding: 0,
+              flex: '0 0 auto',
             }}
           >
             {algo.id + 1}
@@ -532,17 +474,9 @@ function AlgorithmPanel({ theme }: { theme: Theme }) {
 
 // Display panel
 function DisplayPanel({ theme }: { theme: Theme }) {
-  const lcdInfo = theme.lcd.info;
-
   return (
     <div style={{ background: '#0a0a0a', borderRadius: 6, padding: 8, marginBottom: 8, border: '1px solid #333' }}>
-      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        {/* Left column: Info */}
-        <InfoDisplay lcdColor={lcdInfo} />
-
-        {/* Center: Large algorithm display */}
-        <AlgorithmPanel theme={theme} />
-      </div>
+      <AlgorithmPanel theme={theme} />
     </div>
   );
 }
@@ -581,7 +515,7 @@ export function Fm6OpPanel({ theme = THEMES.classic, onPanic }: Fm6OpPanelProps)
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'stretch', padding: '10px 0', minHeight: '100vh', background: 'linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%)' }}>
       <WoodPanel side="left" />
 
-      <div style={{ padding: '10px 16px', maxWidth: 1400, background: 'linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%)', borderTop: '3px solid #444', borderBottom: '3px solid #222' }}>
+      <div style={{ padding: '10px 16px', maxWidth: 1350, flex: 1, background: 'linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%)', borderTop: '3px solid #444', borderBottom: '3px solid #222' }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>

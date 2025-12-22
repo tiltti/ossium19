@@ -1,6 +1,6 @@
 import { LcdColor } from './components/LcdScreen';
 
-export type ThemeName = 'classic' | 'neon' | 'sunset' | 'retro' | 'modern' | 'matrix';
+export type ThemeName = 'classic' | 'matrix';
 
 export type ThemeStyle = 'default' | 'retro' | 'modern';
 
@@ -90,154 +90,6 @@ export const THEMES: Record<ThemeName, Theme> = {
     headerWeight: 300,
   },
 
-  // Neon - cyberpunk style with vibrant colors
-  neon: {
-    name: 'neon',
-    style: 'default',
-    primary: '#ff00ff',
-    secondary: '#00ffff',
-    accent: '#ffff00',
-    background: '#0a0012',
-    surface: '#120020',
-    border: '#ff00ff44',
-    text: '#fff',
-    textMuted: '#aa88cc',
-    lcd: {
-      main: 'blue',
-      alt: 'green',
-      info: 'blue',
-    },
-    button: {
-      borderRadius: 2,
-      gradient: false,
-      borderWidth: 2,
-      shadow: true,
-    },
-    container: {
-      borderRadius: 2,
-      borderWidth: 2,
-      shadow: '0 0 20px rgba(255,0,255,0.3)',
-      background: '#120020',
-    },
-    knob: {
-      trackColor: '#440066',
-      indicatorColor: '#ff00ff',
-    },
-    fontFamily: '"Courier New", monospace',
-    headerWeight: 700,
-  },
-
-  // Sunset - warm orange/red tones
-  sunset: {
-    name: 'sunset',
-    style: 'default',
-    primary: '#ff6b35',
-    secondary: '#f7c59f',
-    accent: '#ffb347',
-    background: '#1a1410',
-    surface: '#201814',
-    border: '#443322',
-    text: '#fff',
-    textMuted: '#aa8866',
-    lcd: {
-      main: 'amber',
-      alt: 'amber',
-      info: 'amber',
-    },
-    button: {
-      borderRadius: 6,
-      gradient: true,
-      borderWidth: 1,
-      shadow: true,
-    },
-    container: {
-      borderRadius: 8,
-      borderWidth: 1,
-      shadow: '0 4px 16px rgba(0,0,0,0.5)',
-      background: '#201814',
-    },
-    knob: {
-      trackColor: '#443322',
-      indicatorColor: '#ff6b35',
-    },
-    fontFamily: 'system-ui, -apple-system, sans-serif',
-    headerWeight: 400,
-  },
-
-  // Retro - vintage hardware look (VFD displays, wood grain feel)
-  retro: {
-    name: 'retro',
-    style: 'retro',
-    primary: '#33ff99',
-    secondary: '#ff9933',
-    accent: '#33ff99',
-    background: '#2a2015',
-    surface: '#3a3025',
-    border: '#5a4a35',
-    text: '#e8dcc8',
-    textMuted: '#8a7a65',
-    lcd: {
-      main: 'green',
-      alt: 'green',
-      info: 'green',
-    },
-    button: {
-      borderRadius: 8,
-      gradient: true,
-      borderWidth: 3,
-      shadow: true,
-    },
-    container: {
-      borderRadius: 12,
-      borderWidth: 3,
-      shadow: 'inset 0 2px 4px rgba(0,0,0,0.4), 0 4px 8px rgba(0,0,0,0.6)',
-      background: 'linear-gradient(180deg, #3a3025 0%, #2a2015 100%)',
-    },
-    knob: {
-      trackColor: '#5a4a35',
-      indicatorColor: '#33ff99',
-    },
-    fontFamily: '"Courier New", "Lucida Console", monospace',
-    headerWeight: 700,
-  },
-
-  // Modern - clean, flat, minimal
-  modern: {
-    name: 'modern',
-    style: 'modern',
-    primary: '#4a90d9',
-    secondary: '#7c4dff',
-    accent: '#4a90d9',
-    background: '#18181b',
-    surface: '#27272a',
-    border: '#3f3f46',
-    text: '#fafafa',
-    textMuted: '#71717a',
-    lcd: {
-      main: 'white',
-      alt: 'blue',
-      info: 'white',
-    },
-    button: {
-      borderRadius: 8,
-      gradient: false,
-      borderWidth: 0,
-      shadow: false,
-    },
-    container: {
-      borderRadius: 12,
-      borderWidth: 0,
-      shadow: 'none',
-      background: '#27272a',
-    },
-    knob: {
-      trackColor: '#3f3f46',
-      indicatorColor: '#4a90d9',
-    },
-    fontFamily: 'Inter, system-ui, sans-serif',
-    headerWeight: 600,
-  },
-
   // Matrix - green on black terminal style
   matrix: {
     name: 'matrix',
@@ -271,8 +123,8 @@ export const THEMES: Record<ThemeName, Theme> = {
       trackColor: '#003300',
       indicatorColor: '#00ff41',
     },
-    fontFamily: '"Courier New", monospace',
-    headerWeight: 400,
+    fontFamily: 'system-ui, -apple-system, sans-serif',
+    headerWeight: 300,
   },
 };
 

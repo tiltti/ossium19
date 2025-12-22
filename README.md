@@ -1,165 +1,178 @@
-# Ossian-19
+# OSSIAN-19
 
-A hybrid software synthesizer combining classic subtractive synthesis with DX7-style 6-operator FM synthesis, built with Rust and WebAssembly.
+A professional hybrid software synthesizer workstation combining classic subtractive synthesis, DX7-style 6-operator FM synthesis, a TR-style drum machine, and studio-quality effects - all built with Rust and WebAssembly.
 
 **[Try it live](https://tiltti.github.io/ossium19/)**
+
+## Overview
+
+OSSIAN-19 is a complete browser-based music production environment featuring:
+- **Two synthesis engines** (Subtractive + 6-Op FM)
+- **16-step drum machine** with accent patterns
+- **Global mixer** with per-channel control
+- **OSSIAN SPACE** - RAUM-style immersive reverb
+- **Classic effects pedalboard** (Delay, Reverb, Chorus)
+- **Advanced arpeggiator** with 20 presets
+- **Demo player** with synchronized drum patterns
+
+## Navigation
+
+| Tab | Description |
+|-----|-------------|
+| **SYNTH** | Subtractive synthesizer with dual oscillators |
+| **FM** | 6-operator DX7-style FM synthesis |
+| **DRUMS** | 16-step drum machine with presets |
+| **MIXER** | Global mix with level meters |
+| **FX** | OSSIAN SPACE + Classic Pedalboard |
+| **ARP** | Arpeggiator panel (toggle) |
+| **SETTINGS** | Themes, file management |
 
 ## Features
 
 ### Synthesis Engines
 
-- **Subtractive Synthesizer**
-  - Dual oscillators (Saw, Square, Triangle, Sine) with PolyBLEP anti-aliasing
-  - Moog-style ladder filter with variable slope (6/12/24 dB/octave)
-  - Sub-oscillator and noise generator
-  - Dedicated filter envelope with adjustable amount
+#### Subtractive Synthesizer (SYNTH tab)
+- Dual oscillators (Saw, Square, Triangle, Sine) with PolyBLEP anti-aliasing
+- Moog-style ladder filter with variable slope (6/12/24 dB/octave)
+- Sub-oscillator and noise generator
+- FM amount between oscillators
+- Dedicated filter envelope with adjustable amount
+- Full ADSR envelopes for amp and filter
 
-- **6-Operator FM Synthesizer** (DX7-style)
-  - All 32 DX7 algorithms with accurate modulation routing
-  - Visual algorithm display with operator diagrams
-  - Per-operator ADSR envelopes with velocity sensitivity
-  - Operator feedback and detuning
-  - Optional post-FM lowpass filter
-  - 22 factory presets (E.PIANO, BRASS, STRINGS, etc.)
+#### 6-Operator FM Synthesizer (FM tab)
+- All 32 DX7 algorithms with accurate modulation routing
+- Visual algorithm display with interactive selection (one-row 32-button selector)
+- Per-operator ADSR envelopes with velocity sensitivity
+- Operator feedback, ratio, and detuning
+- Optional post-FM lowpass filter
+- 22 factory presets (E.PIANO, BRASS, STRINGS, BELLS, etc.)
+- SYX bank file import support
 
-- **4-Operator FM Synthesizer** (Classic mode)
-  - 8 simplified algorithms
-  - Per-operator controls
-  - 16 factory presets
+### Drum Machine (DRUMS tab)
 
-### Arpeggiator
+#### 5 Synthesis-Based Drum Kits
+Each kit offers unique character through different synthesis parameters:
 
-- **Pattern Modes**: Up, Down, Up-Down, Down-Up, Random, As-Played, Converge, Diverge, Chord
+| Kit | Year | Character | Color |
+|-----|------|-----------|-------|
+| **TR-808** | 1980 | Deep, boomy, classic hip-hop | Orange |
+| **TR-909** | 1983 | Punchy, aggressive, techno/house | Blue |
+| **TR-707** | 1985 | Clean, tight, digital feel | Green |
+| **CR-78** | 1978 | Vintage, organic, warm analog | Gold |
+| **LinnDrum** | 1982 | Punchy, crisp, 80s pop/rock | Pink |
+
+#### Features
+- **16-step sequencer** with large 50x50px pads
+- **11 drum sounds**: Kick, Snare, Clap, HiHat (closed/open), Toms (low/mid/hi), Rimshot, Cowbell, Cymbal
+- **Pure synthesis** - no samples, all sounds generated in real-time
+- **Accent system**: Long-press any step to add accent (shown in red)
+- **12 preset patterns** with pre-programmed accents:
+  - Four on Floor, 808 House, Boom Bap, Motown
+  - Disco, Techno, Funk, Bossa Nova, Reggae
+  - Synthwave, Amen Break, Trap
+- **Per-track mute** buttons
+- **Swing** and **Accent amount** controls
+- **Kit-specific color themes**
+- **Synced to global BPM**
+
+### Effects (FX tab)
+
+#### OSSIAN SPACE (RAUM-style Reverb)
+A dramatic, immersive reverb inspired by Native Instruments RAUM:
+
+**Three Modes:**
+| Mode | Character | Colors |
+|------|-----------|--------|
+| **GROUNDED** | Dense, warm, room-like | Orange/Gold |
+| **AIRY** | Light, ethereal, floating | Blue/Cyan |
+| **COSMIC** | Infinite, shimmering, otherworldly | Purple/Magenta |
+
+**Controls:**
+- **SIZE** - Room size from tiny to infinite
+- **DECAY** - Reverb tail length (0.1-20 seconds)
+- **SHIMMER** - Octave-up pitch-shifted feedback
+- **FREEZE** - Infinite sustain (holds current sound)
+- **MOD** - Internal modulation/movement
+- **SPARKLE** - High frequency enhancement
+- **DAMPING** - High frequency absorption
+- **PRE-DLY** - Pre-delay time
+- **DIFFUSE** - Density/smoothness
+- **STEREO** - Stereo width
+- **DRIVE** - Soft saturation
+- **LOW CUT** - High-pass filter
+
+**Animated Visualization:**
+- Particle system reacts to audio intensity
+- Color scheme changes with mode
+- Freeze state shows sustained trails
+
+#### Classic Pedalboard
+Three effect pedals with footswitch-style bypass:
+- **DELAY** - Time, Feedback, Mix
+- **REVERB** - Decay, Damping, Mix
+- **CHORUS** - Rate, Depth, Mix
+
+### Mixer (MIXER tab)
+
+- **Three channels**: Synth, FM, Drums
+- **Per-channel controls**: Volume, Pan, Mute, Solo
+- **Stereo VU meters** with peak indicators
+- **Lissajous/Goniometer display** for stereo imaging
+- **Master output** section
+
+### Arpeggiator (ARP toggle)
+
+- **9 Pattern Modes**: Up, Down, Up-Down, Down-Up, Random, As-Played, Converge, Diverge, Chord
 - **Timing**: Rate (1/1 to 1/32, triplets, dotted), Gate, Swing
 - **Humanize**: Timing jitter, velocity spread, gate spread, "drunk" mode
-- **Random**: Probability, random octave, shuffle
-- **Controls**: Latch, Sync, 1-4 octaves
 - **20 Presets** in 4 categories:
   - Classic: Basic Up, Classic 80s, Synth Pop, Kraftwerk, Depeche
   - Dance: Trance Gate, Acid Bass, House Stab, Techno Pulse, Eurodance
   - Ambient: Slow Pad, Dreamy, Ethereal, Floating, Meditation
   - Experimental: Drunk Walk, Glitch, Chaos, Broken, Jazz Random
+- **LATCH mode**: Notes sustain after release
+- **SYNC mode**: Pattern restarts on new notes
+- **1-4 octave range**
 
-### MIDI Player
+### Visual Feedback (Header LCD Row)
 
-- Load and play Standard MIDI Files (.mid, .midi)
-- Play/Pause/Stop/Seek controls
-- Loop mode
-- Track selection for multi-track files
-- Uses the selected synth engine for playback
+| Display | Function |
+|---------|----------|
+| **CHORD** | Current chord detection |
+| **TUNER** | Pitch detection with cents indicator |
+| **SCOPE** | Real-time oscilloscope |
+| **GONIO** | Lissajous stereo phase display |
+| **SPECTRUM** | 64-band frequency analyzer |
+| **LVL** | Stereo level meters (L/R) |
+| **STATS** | Voice count, latency, audio state |
+| **BPM** | Global tempo with 7-segment display |
 
-### Drum Machine
+### Demo Player
 
-- 16-step pattern sequencer
-- 7-segment LED BPM display
-- 8 drum sounds (Kick, Snare, HiHat, etc.)
-- Pattern presets
-- Swing control
+Pre-programmed demo sequences in the header:
+- Each demo uses a specific synth engine (Subtractive or FM)
+- Drums play synchronized patterns
+- **Auto-switches** to correct synth tab when demo starts
+- Sequences loop automatically
 
 ### Performance Controls
 
 - **8-Voice Polyphony** with voice stealing
-- **3D Rotating Pitch/Mod Wheels** (Moog-style)
-  - Pitch wheel: Spring-return, ±12 semitones
-  - Mod wheel: Filter (subtractive) / Vibrato (FM)
-- **Interactive Keyboard** with mouse painting and glide support
+- **Pitch Wheel**: Spring-return, ±12 semitones
+- **Mod Wheel**: Filter cutoff (Synth) / Vibrato (FM)
+- **Interactive Keyboard** with mouse painting and glide
+- **Computer keyboard** mapping (see controls below)
 - **MIDI Input** via Web MIDI API
+- **Global BPM** (60-200) syncs drums and arpeggiator
+- **Panic button** stops all audio
 
-### Effects
+### File Support
 
-- Convolution Reverb with decay control
-- Stereo Delay with feedback
-- Chorus with rate and depth
+- **SYX**: DX7 32-voice bank files
+- **MIDI**: Standard MIDI Files format 0 and 1 (.mid, .midi)
+- Drag-and-drop file loading in Settings
 
-### Visual Feedback
-
-- **LCD Displays**: Oscilloscope, Spectrum Analyzer, Algorithm Visualization
-- **7-Segment Displays**: BPM, Voice Count
-- **Stereo Level Meter** with peak hold
-- **Interactive Envelope Graphs** with draggable ADSR points
-- **DX7 Algorithm Diagrams** with operator connections
-
-### Customization
-
-- **4 Color Themes**: Classic (Green), Amber, Blue, Matrix
-- **Wood Side Panels** for classic synthesizer aesthetic
-- **Categorized Preset Browser**
-
-## User Guide
-
-### Getting Started
-
-1. Open the synth in your browser
-2. Click anywhere or press a key to initialize audio
-3. Use your computer keyboard or click the on-screen keyboard to play
-
-### Synth Modes
-
-Click the mode buttons in the header to switch between:
-- **SUBTRACTIVE**: Classic analog-style synthesis
-- **4-OP FM**: 4-operator FM with 8 algorithms
-- **6-OP FM**: Full DX7-style 6-operator FM with 32 algorithms
-- **DRUMS**: Step sequencer drum machine
-- **SETTINGS**: File management and about
-
-### Using the Arpeggiator
-
-1. Click **ARP** button in the header to show/hide the arpeggiator
-2. Click **ARP ON/OFF** to enable
-3. Hold notes on the keyboard - they will arpeggiate
-4. **TEST button**: Hold to preview with C major chord
-5. Select a preset from the **PRESETS** dropdown
-6. Adjust pattern, timing, and humanize settings
-
-#### LATCH Mode
-When **LATCH** is enabled (red), notes stay held even after you release the keys. This allows you to:
-- Play a chord, release your hand, and the arp continues
-- Add or change notes while the arp plays
-- Click LATCH again to release all notes
-
-#### SYNC Mode
-When **SYNC** is enabled (green), the arpeggio restarts from the beginning each time you play a new note. When disabled, new notes are added to the running pattern without resetting.
-
-#### Humanize Settings
-- **Timing Jitter**: Adds random timing variation (0-50ms) for human feel
-- **Velocity Spread**: Varies note velocities randomly
-- **Gate Spread**: Varies note lengths randomly
-- **DRUNK**: Cumulative timing drift - notes gradually wander off the grid
-
-### Loading Presets
-
-#### 6-OP FM Presets
-1. Switch to **6-OP FM** mode
-2. Click the **PRESET** dropdown in the display panel
-3. Select a category (Keys, Bass, Lead, etc.)
-4. Click a preset name to load it
-
-#### DX7 SYX Files
-1. Go to **SETTINGS**
-2. Drag and drop a .syx file into the "SYX File Manager" area
-3. Click a bank to expand and view voices
-4. Click a voice to select it
-
-### Playing MIDI Files
-
-1. Go to **SETTINGS**
-2. Drag and drop a .mid or .midi file into the "MIDI Player" area
-3. Click a file to select it
-4. Use the transport controls (Play/Pause/Stop)
-5. Click the progress bar to seek
-6. Enable **LOOP** for continuous playback
-7. Select a track from the dropdown (multi-track files)
-
-Note: MIDI playback uses the currently selected synth (switch to Subtractive, 4-OP FM, or 6-OP FM before playing)
-
-### Algorithm Selection (6-OP FM)
-
-1. The large LCD display shows the current algorithm diagram
-2. Use ◀/▶ buttons to browse algorithms
-3. Or click a number in the 8×4 grid below for quick selection
-4. Algorithms 1-32 match the original DX7
-
-### Keyboard Controls
+## Keyboard Controls
 
 | Keys | Notes |
 |------|-------|
@@ -168,16 +181,6 @@ Note: MIDI playback uses the currently selected synth (switch to Subtractive, 4-
 | Q W E R T Y U | Upper octave white keys |
 | 2 3 5 6 7 | Upper octave black keys |
 | I O P [ ] | Highest octave |
-
-- **Mouse**: Click and drag across keys to glide
-- **Octave**: Use +/- buttons to shift keyboard range
-
-### Demo Player
-
-The demo player in the header plays pre-programmed sequences synced with the drum machine:
-- Click a demo name (Arp Pad, FM Bells, Techno, etc.)
-- The sequence plays using the current synth
-- Drums play simultaneously if enabled
 
 ## Architecture
 
@@ -189,8 +192,7 @@ The demo player in the header plays pre-programmed sequences synced with the dru
 │  │ (PolyBLEP)  │  │  (Ladder)   │  │   (ADSR)    │     │
 │  └─────────────┘  └─────────────┘  └─────────────┘     │
 │  ┌─────────────────────────────────────────────────┐   │
-│  │      6-Op / 4-Op FM Voice Manager               │   │
-│  │  (32 DX7 algorithms, per-operator envelopes)    │   │
+│  │      6-Op FM Voice Manager (32 algorithms)      │   │
 │  └─────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────┘
                          │
@@ -198,9 +200,12 @@ The demo player in the header plays pre-programmed sequences synced with the dru
 ┌─────────────────────────────────────────────────────────┐
 │              Web Audio API + React UI                   │
 │  ┌───────────┐ ┌───────────┐ ┌───────────┐ ┌─────────┐ │
-│  │  Effects  │ │ Analyser  │ │ Arpeggio  │ │  MIDI   │ │
-│  │ (JS/Web)  │ │ (Visuals) │ │   +Drums  │ │ Player  │ │
+│  │  Effects  │ │   Drum    │ │ Arpeggio  │ │  MIDI   │ │
+│  │  Chain    │ │  Machine  │ │   Engine  │ │ Player  │ │
 │  └───────────┘ └───────────┘ └───────────┘ └─────────┘ │
+│  ┌─────────────────────────────────────────────────────┐│
+│  │  Visualizers: Scope, Spectrum, Gonio, Tuner, Meter ││
+│  └─────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -211,6 +216,7 @@ The demo player in the header plays pre-programmed sequences synced with the dru
 - **UI**: React 18 + TypeScript + Zustand
 - **Build**: Vite + wasm-pack
 - **Styling**: CSS-in-JS with hardware synth aesthetics
+- **Wood panels**: Classic synthesizer cabinet styling
 
 ## Development
 
@@ -223,42 +229,53 @@ npm run build:wasm
 
 # Start dev server
 npm run dev
+
+# Production build
+npm run build
 ```
 
-## File Formats
+## Design Philosophy
 
-### Supported Input
-- **SYX**: DX7 32-voice bank files (.syx)
-- **MIDI**: Standard MIDI Files format 0 and 1 (.mid, .midi)
-
-### DX7 Compatibility
-The 6-OP FM engine supports all 32 original DX7 algorithms. SYX bank files from the original DX7 or compatible sources can be loaded and played.
+OSSIAN-19 aims to recreate the experience of using professional hardware synthesizers:
+- **Skeuomorphic design** with realistic controls (knobs, buttons, wood panels)
+- **LCD displays** with authentic dot-matrix aesthetics
+- **Studio workflow** with separate sections for synthesis, mixing, and effects
+- **Visual feedback** that matches professional audio equipment
 
 ## Trivia
 
-- **The Name**: Ossian is a legendary Gaelic bard from the 3rd century. The "-19" references the 19-tone equal temperament used in some microtonal music, though this synth uses standard 12-TET.
+- **The Name**: Ossian is a legendary Gaelic bard from the 3rd century. The "-19" references the project's 19th iteration during development.
 
-- **FM Synthesis History**: The 6-operator FM engine is inspired by Yamaha's DX7 (1983). The DX7 sold over 200,000 units and defined the sound of 80s pop music. Famous DX7 sounds include the Toto "Africa" marimba and countless 80s bass and electric piano patches.
+- **FM Synthesis History**: The 6-operator FM engine is inspired by Yamaha's DX7 (1983), which sold over 200,000 units and defined the sound of 80s pop music.
 
-- **Why Rust + WASM?**: Audio DSP requires sample-accurate timing. JavaScript's garbage collector can cause audio glitches. Rust compiled to WASM provides predictable, near-native performance without GC pauses.
+- **OSSIAN SPACE**: Inspired by Native Instruments' RAUM reverb, known for its lush, transformative reverbs that can turn any sound into an atmospheric experience.
 
-- **The Ladder Filter**: The 24dB/octave lowpass filter emulates Bob Moog's famous transistor ladder design from 1965 - still considered the gold standard for analog-style filtering.
+- **Why Rust + WASM?**: Audio DSP requires sample-accurate timing. JavaScript's garbage collector can cause audio glitches. Rust compiled to WASM provides predictable, near-native performance.
 
-- **PolyBLEP Oscillators**: The oscillators use Polynomial Band-Limited Step functions to reduce aliasing without expensive oversampling.
+- **The Ladder Filter**: Emulates Bob Moog's famous transistor ladder design from 1965 - still the gold standard for analog-style filtering.
 
-- **Voice Stealing**: When all 8 voices are active and a new note is played, the synth "steals" the oldest voice. This technique dates back to early polyphonic synths like the Prophet-5 (1978).
+- **The Drum Machines**: Each kit is synthesized from scratch - no samples! The TR-808's deep kick uses a sine wave with pitch envelope, the 909's punchy character comes from added waveshaper distortion, and the LinnDrum's crisp transients use additional click oscillators.
 
 ## Roadmap
 
 - [x] 6-operator FM with 32 DX7 algorithms
 - [x] Filter slope selector (6/12/24 dB/oct)
 - [x] Visual DX7 algorithm display
-- [x] Arpeggiator with presets
+- [x] Arpeggiator with 20 presets
 - [x] MIDI file player
+- [x] Drum machine with accent patterns
+- [x] Global mixer
+- [x] OSSIAN SPACE reverb
+- [x] Goniometer and pitch tuner displays
+- [x] Drum kit variations (TR-808, TR-909, TR-707, CR-78, LinnDrum)
 - [ ] MIDI CC mapping
 - [ ] Patch export/import
-- [ ] AudioWorklet migration (from ScriptProcessorNode)
+- [ ] AudioWorklet migration
 
 ## License
 
 MIT
+
+---
+
+Made with Rust, React, and a love for synthesizers.

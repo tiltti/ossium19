@@ -1,16 +1,12 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useSynthStore } from '../stores/synth-store';
 import { Knob } from './Knob';
 import { Waveform } from '../audio/engine';
 import { PresetSelector } from './PresetSelector';
-import {
-  LcdScreen,
-  LcdColor,
-} from './LcdScreen';
+import { LcdColor } from './LcdScreen';
 import { useArpStore } from '../stores/arp-store';
 import { Theme, THEMES } from '../theme';
 import { WoodPanel } from './WoodPanel';
-import { VisualizationPanel } from './VisualizationPanel';
 import { SignalRouting } from './SignalRouting';
 import { InteractiveEnvelope } from './InteractiveEnvelope';
 import { Keyboard } from './Keyboard';
@@ -121,40 +117,6 @@ function ToggleButton({
   );
 }
 
-// Chord detection
-function detectChord(midiNotes: number[]): string {
-  if (midiNotes.length === 0) return '---';
-  if (midiNotes.length === 1) {
-    const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-    return notes[midiNotes[0] % 12];
-  }
-
-  const pitchClasses = [...new Set(midiNotes.map(n => n % 12))].sort((a, b) => a - b);
-  if (pitchClasses.length < 2) {
-    const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-    return notes[pitchClasses[0]];
-  }
-
-  const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-
-  for (const root of pitchClasses) {
-    const intervals = pitchClasses.map(p => (p - root + 12) % 12).sort((a, b) => a - b);
-    const intervalStr = intervals.join(',');
-
-    const chordTypes: Record<string, string> = {
-      '0,4,7': '', '0,3,7': 'm', '0,4,7,11': 'maj7', '0,3,7,10': 'm7',
-      '0,4,7,10': '7', '0,4,8': 'aug', '0,3,6': 'dim', '0,3,6,9': 'dim7',
-      '0,2,7': 'sus2', '0,5,7': 'sus4', '0,4,7,9': '6', '0,3,7,9': 'm6',
-    };
-
-    if (chordTypes[intervalStr] !== undefined) {
-      return notes[root] + chordTypes[intervalStr];
-    }
-  }
-
-  return notes[pitchClasses[0]] + '(' + pitchClasses.length + ')';
-}
-
 // LCD color palette for each LCD color type
 const LCD_TEXT_COLORS: Record<LcdColor, { fg: string; fgMuted: string; fgAccent: string }> = {
   green: { fg: '#33ff66', fgMuted: '#33ff6688', fgAccent: '#66ffaa' },
@@ -163,68 +125,10 @@ const LCD_TEXT_COLORS: Record<LcdColor, { fg: string; fgMuted: string; fgAccent:
   white: { fg: '#ffffff', fgMuted: '#ffffff88', fgAccent: '#ffffff' },
 };
 
-// Info LCD display showing synth status
-function InfoDisplay({ lcdColor = 'blue' }: { lcdColor?: LcdColor }) {
-  const { currentPreset, activeNotes, params } = useSynthStore();
-  const noteCount = activeNotes.size;
-  const midiNotes = Array.from(activeNotes).sort((a, b) => a - b);
-  const colors = LCD_TEXT_COLORS[lcdColor];
-
-  const noteNames = midiNotes.map((n) => {
-    const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-    const octave = Math.floor(n / 12) - 1;
-    return `${notes[n % 12]}${octave}`;
-  });
-
-  const chord = detectChord(midiNotes);
-
-  return (
-    <LcdScreen width={280} height={90} color={lcdColor} pixelSize={2}>
-      <div
-        style={{
-          padding: 6,
-          fontFamily: 'monospace',
-          fontSize: 10,
-          color: colors.fg,
-          textShadow: `0 0 4px ${colors.fg}`,
-        }}
-      >
-        <div style={{ marginBottom: 4 }}>
-          <span style={{ color: colors.fgMuted }}>PRESET:</span> {currentPreset || 'INIT'}
-        </div>
-        <div style={{ marginBottom: 4, display: 'flex', gap: 10 }}>
-          <span><span style={{ color: colors.fgMuted }}>OSC:</span> {params.osc1Waveform.slice(0, 3).toUpperCase()}/{params.osc2Waveform.slice(0, 3).toUpperCase()}</span>
-          <span><span style={{ color: colors.fgMuted }}>FM:</span> {params.fmAmount > 0 ? 'ON' : 'OFF'}</span>
-          <span><span style={{ color: colors.fgMuted }}>VOL:</span> {Math.round(params.masterVolume * 100)}%</span>
-        </div>
-        <div style={{ marginBottom: 4, display: 'flex', alignItems: 'baseline', gap: 8 }}>
-          <span style={{ color: colors.fgMuted }}>CHORD:</span>
-          <span style={{ color: colors.fgAccent, fontSize: 16, fontWeight: 'bold' }}>{chord}</span>
-          <span style={{ color: colors.fgMuted, fontSize: 9 }}>({noteCount} notes)</span>
-        </div>
-        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          <span style={{ color: colors.fgMuted }}>NOTES:</span> {noteCount > 0 ? noteNames.join(' ') : '---'}
-        </div>
-      </div>
-    </LcdScreen>
-  );
-}
-
-// Main display panel with oscilloscope
+// Main display panel - Signal Routing only
 function DisplayPanel({ theme }: { theme: Theme }) {
-  const { getAudioContext, getEffectsOutput, isInitialized, params } = useSynthStore();
-  const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
-  const [effectsOutput, setEffectsOutput] = useState<AudioNode | null>(null);
+  const { params } = useSynthStore();
   const lcdMain = theme.lcd.main;
-  const lcdAlt = theme.lcd.alt;
-  const lcdInfo = theme.lcd.info;
-
-  useEffect(() => {
-    if (isInitialized) {
-      setAudioContext(getAudioContext());
-      setEffectsOutput(getEffectsOutput());
-    }
-  }, [isInitialized, getAudioContext, getEffectsOutput]);
 
   return (
     <div
@@ -236,22 +140,7 @@ function DisplayPanel({ theme }: { theme: Theme }) {
         border: '1px solid #333',
       }}
     >
-      {/* Top row: Info + Visualizations */}
-      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 10 }}>
-        {/* Info Display */}
-        <InfoDisplay lcdColor={lcdInfo} />
-
-        {/* Visualization Panel */}
-        <VisualizationPanel
-          audioContext={audioContext}
-          masterNode={effectsOutput}
-          primaryColor={LCD_TEXT_COLORS[lcdMain].fg}
-          secondaryColor={LCD_TEXT_COLORS[lcdAlt].fg}
-        />
-      </div>
-
-      {/* Bottom row: Signal Routing */}
-      <SignalRouting params={params} width={540} height={135} accentColor={LCD_TEXT_COLORS[lcdMain].fg} />
+      <SignalRouting params={params} width={700} height={135} accentColor={LCD_TEXT_COLORS[lcdMain].fg} />
     </div>
   );
 }
@@ -477,6 +366,7 @@ export function SynthPanel({ theme = THEMES.classic, onPanic }: SynthPanelProps)
         style={{
           padding: '12px 20px',
           maxWidth: 1350,
+          flex: 1,
           background: 'linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%)',
           borderTop: '3px solid #444',
           borderBottom: '3px solid #222',

@@ -750,7 +750,7 @@ export function MixerPanel({ theme }: MixerPanelProps) {
   const synthAnalyser = synthStore.getAnalyser();
   const fm6Analyser = fm6Store.getAnalyser();
   const drumAnalyser = drumStore.getAnalyser();
-  const audioContext = synthStore.getAudioContext() || drumStore.getAudioContext();
+  const audioContext = synthStore.getAudioContext() || fm6Store.getAudioContext() || drumStore.getAudioContext();
 
   // Create stereo split analysers for Lissajous and VU meters
   const [stereoAnalysers, setStereoAnalysers] = useState<{
@@ -758,12 +758,12 @@ export function MixerPanel({ theme }: MixerPanelProps) {
     right: AnalyserNode | null;
   }>({ left: null, right: null });
 
-  // Get actual stereo output from synth's effects chain
-  const synthEffectsOutput = synthStore.getEffectsOutput();
+  // Get actual stereo output from any available effects chain
+  const effectsOutput = synthStore.getEffectsOutput() || fm6Store.getEffectsOutput() || drumStore.getEffectsOutput();
 
   // Create stereo analysers from the effects output (which is stereo)
   useEffect(() => {
-    if (!audioContext || !synthEffectsOutput) return;
+    if (!audioContext || !effectsOutput) return;
 
     const splitter = audioContext.createChannelSplitter(2);
     const left = audioContext.createAnalyser();
@@ -775,7 +775,7 @@ export function MixerPanel({ theme }: MixerPanelProps) {
 
     try {
       // Connect effects output to splitter for stereo analysis
-      synthEffectsOutput.connect(splitter);
+      effectsOutput.connect(splitter);
       splitter.connect(left, 0);
       splitter.connect(right, 1);
 
@@ -793,7 +793,7 @@ export function MixerPanel({ theme }: MixerPanelProps) {
         // Ignore
       }
     };
-  }, [audioContext, synthEffectsOutput]);
+  }, [audioContext, effectsOutput]);
 
   const updateChannel = useCallback((
     channel: 'synth' | 'fm' | 'drums',
@@ -839,9 +839,27 @@ export function MixerPanel({ theme }: MixerPanelProps) {
   }, [masterVolume, channels, masterMuted, applyVolumes]);
 
   return (
-    <div style={{ display: 'flex', gap: 0 }}>
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'stretch',
+        padding: '12px 0',
+        minHeight: '100vh',
+        background: 'linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%)',
+      }}
+    >
       <WoodPanel side="left" />
-      <div style={{ flex: 1, padding: 20, background: theme.background }}>
+      <div
+        style={{
+          flex: 1,
+          maxWidth: 1350,
+          padding: 20,
+          background: theme.background,
+          borderTop: '3px solid #444',
+          borderBottom: '3px solid #222',
+        }}
+      >
         {/* Header */}
         <div
           style={{

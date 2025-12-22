@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useArpStore } from '../stores/arp-store';
 import { ARP_MODES, ARP_RATES, ARP_PRESETS, PATTERN_PRESETS, ArpRate, ArpPreset, PatternPreset } from '../audio/arpeggiator';
 import { Knob } from './Knob';
+import { WoodPanel } from './WoodPanel';
 
 interface ArpeggiatorPanelProps {
   onNoteOn: (note: number, velocity: number) => void;
@@ -478,18 +479,30 @@ export function ArpeggiatorPanel({ onNoteOn, onNoteOff }: ArpeggiatorPanelProps)
   return (
     <div
       style={{
-        background: `linear-gradient(180deg, ${metalHighlight} 0%, ${bgColor} 3px, ${bgColor} calc(100% - 3px), ${metalShadow} 100%)`,
-        borderRadius: 4,
-        padding: 0,
-        border: `1px solid ${metalHighlight}`,
-        boxShadow: `
-          inset 0 1px 0 ${metalHighlight}44,
-          inset 0 -1px 0 ${metalShadow},
-          0 4px 12px rgba(0,0,0,0.5)
-        `,
-        position: 'relative',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'stretch',
       }}
     >
+      <WoodPanel side="left" />
+      <div
+        style={{
+          flex: 1,
+          maxWidth: 1350,
+          background: `linear-gradient(180deg, ${metalHighlight} 0%, ${bgColor} 3px, ${bgColor} calc(100% - 3px), ${metalShadow} 100%)`,
+          borderRadius: 0,
+          padding: 0,
+          border: `1px solid ${metalHighlight}`,
+          borderLeft: 'none',
+          borderRight: 'none',
+          boxShadow: `
+            inset 0 1px 0 ${metalHighlight}44,
+            inset 0 -1px 0 ${metalShadow},
+            0 4px 12px rgba(0,0,0,0.5)
+          `,
+          position: 'relative',
+        }}
+      >
       {/* Rack mount screws */}
       <div style={{ position: 'absolute', top: 6, left: 8, display: 'flex', gap: 6 }}>
         <div style={{
@@ -1409,6 +1422,8 @@ export function ArpeggiatorPanel({ onNoteOn, onNoteOff }: ArpeggiatorPanelProps)
         )}
       </div>
       </div>
+      </div>
+      <WoodPanel side="right" />
     </div>
   );
 }

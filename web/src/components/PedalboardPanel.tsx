@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { Theme } from '../theme';
 import { Knob } from './Knob';
 import { useFxStore } from '../stores/fx-store';
+import { WoodPanel } from './WoodPanel';
 
 // Pedal types (matching what EffectsChain actually supports)
 type PedalType = 'delay' | 'reverb' | 'chorus';
@@ -301,7 +302,27 @@ export function PedalboardPanel({ theme }: PedalboardPanelProps) {
   const activePedals = pedals.filter(p => !p.bypassed);
 
   return (
-    <div style={{ padding: 20 }}>
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'stretch',
+        padding: '12px 0',
+        minHeight: '100vh',
+        background: 'linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%)',
+      }}
+    >
+      <WoodPanel side="left" />
+      <div
+        style={{
+          flex: 1,
+          maxWidth: 1350,
+          padding: 20,
+          background: 'linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%)',
+          borderTop: '3px solid #444',
+          borderBottom: '3px solid #222',
+        }}
+      >
       {/* Header */}
       <div
         style={{
@@ -522,6 +543,8 @@ export function PedalboardPanel({ theme }: PedalboardPanelProps) {
       >
         Click footswitch to enable/disable effect
       </div>
+      </div>
+      <WoodPanel side="right" />
     </div>
   );
 }

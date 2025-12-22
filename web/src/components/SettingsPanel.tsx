@@ -1,17 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
 import { useSettingsStore, LoadedBank } from '../stores/settings-store';
 import { useSynthStore } from '../stores/synth-store';
-import { useFm4OpStore } from '../stores/fm4op-store';
 import { useFm6OpStore } from '../stores/fm6op-store';
 import { useSessionStore } from '../stores/session-store';
 import { WoodPanel } from './WoodPanel';
 import { DX7Voice } from '../audio/dx7-syx-parser';
 import { midiPlayer } from '../audio/midi-player';
-import { getFm4OpPresetsByCategory, Fm4OpPreset } from '../audio/fm4op-presets';
 import { dx7Factory6OpPresets } from '../audio/dx7-6op-presets';
 import { factoryPresets, Preset } from '../audio/presets';
 import { Fm6OpPreset } from '../stores/fm6op-store';
 import { VERSION } from '../version';
+import { ThemeName, THEMES } from '../theme';
 
 const ACCENT_COLOR = '#ff8c42';
 
@@ -759,44 +758,37 @@ function MidiPlayerControls({ onNoteOn, onNoteOff }: MidiPlayerControlsProps) {
   );
 }
 
-type MidiSynthType = 'subtractive' | 'fm4op' | 'fm6op';
+type MidiSynthType = 'subtractive' | 'fm6op';
 
 function MidiSection() {
   const [selectedSynth, setSelectedSynth] = useState<MidiSynthType>('subtractive');
 
   // Get synth stores
   const { noteOn: subNoteOn, noteOff: subNoteOff, loadPreset: subLoadPreset, init: subInit, isInitialized: subInit_d } = useSynthStore();
-  const { noteOn: fm4NoteOn, noteOff: fm4NoteOff, loadPreset: fm4LoadPreset, init: fm4Init, isInitialized: fm4Init_d } = useFm4OpStore();
   const { noteOn: fm6NoteOn, noteOff: fm6NoteOff, loadPreset: fm6LoadPreset, init: fm6Init, isInitialized: fm6Init_d } = useFm6OpStore();
 
   // Get presets for each synth
   const subPresets: Preset[] = factoryPresets;
-  const fm4Presets: Fm4OpPreset[] = Array.from(getFm4OpPresetsByCategory().values()).flat();
   const fm6Presets: Fm6OpPreset[] = dx7Factory6OpPresets;
 
   // Current preset state
   const [subPresetName, setSubPresetName] = useState(subPresets[0]?.name || '');
-  const [fm4PresetName, setFm4PresetName] = useState(fm4Presets[0]?.name || '');
   const [fm6PresetName, setFm6PresetName] = useState(fm6Presets[0]?.name || '');
 
   // Initialize synth on selection
   useEffect(() => {
     if (selectedSynth === 'subtractive' && !subInit_d) {
       subInit();
-    } else if (selectedSynth === 'fm4op' && !fm4Init_d) {
-      fm4Init();
     } else if (selectedSynth === 'fm6op' && !fm6Init_d) {
       fm6Init();
     }
-  }, [selectedSynth, subInit_d, fm4Init_d, fm6Init_d, subInit, fm4Init, fm6Init]);
+  }, [selectedSynth, subInit_d, fm6Init_d, subInit, fm6Init]);
 
   // Get the callbacks for currently selected synth
   const getNoteCallbacks = () => {
     switch (selectedSynth) {
       case 'subtractive':
         return { onNoteOn: subNoteOn, onNoteOff: subNoteOff };
-      case 'fm4op':
-        return { onNoteOn: fm4NoteOn, onNoteOff: fm4NoteOff };
       case 'fm6op':
         return { onNoteOn: fm6NoteOn, onNoteOff: fm6NoteOff };
     }
@@ -812,14 +804,6 @@ function MidiSection() {
         if (preset) {
           subLoadPreset(preset);
           setSubPresetName(presetName);
-        }
-        break;
-      }
-      case 'fm4op': {
-        const preset = fm4Presets.find(p => p.name === presetName);
-        if (preset) {
-          fm4LoadPreset(preset);
-          setFm4PresetName(presetName);
         }
         break;
       }
@@ -839,8 +823,6 @@ function MidiSection() {
     switch (selectedSynth) {
       case 'subtractive':
         return { presets: subPresets, selected: subPresetName };
-      case 'fm4op':
-        return { presets: fm4Presets, selected: fm4PresetName };
       case 'fm6op':
         return { presets: fm6Presets, selected: fm6PresetName };
     }
@@ -855,7 +837,7 @@ function MidiSection() {
         <div>
           <div style={{ fontSize: 9, color: '#888', marginBottom: 4 }}>SYNTH</div>
           <div style={{ display: 'flex', gap: 4 }}>
-            {(['subtractive', 'fm4op', 'fm6op'] as MidiSynthType[]).map((synth) => (
+            {(['subtractive', 'fm6op'] as MidiSynthType[]).map((synth) => (
               <button
                 key={synth}
                 onClick={() => setSelectedSynth(synth)}
@@ -872,7 +854,7 @@ function MidiSection() {
                   fontWeight: 'bold',
                 }}
               >
-                {synth === 'subtractive' ? 'SUB' : synth === 'fm4op' ? '4-OP' : '6-OP'}
+                {synth === 'subtractive' ? 'SUB' : '6-OP FM'}
               </button>
             ))}
           </div>
@@ -1300,7 +1282,67 @@ function SessionSection() {
   );
 }
 
-export function SettingsPanel() {
+// Theme selector section
+function ThemeSection({ currentTheme, onThemeChange }: { currentTheme: ThemeName; onThemeChange: (t: ThemeName) => void }) {
+  const themeOptions: { id: ThemeName; name: string; description: string }[] = [
+    { id: 'classic', name: 'Classic', description: 'Default blue/orange theme' },
+    { id: 'matrix', name: 'Matrix', description: 'Green terminal style' },
+  ];
+
+  return (
+    <Section title="Theme">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {themeOptions.map((theme) => (
+          <button
+            key={theme.id}
+            onClick={() => onThemeChange(theme.id)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '12px 16px',
+              background: currentTheme === theme.id ? '#1a2020' : '#0a0a0a',
+              border: currentTheme === theme.id ? `2px solid ${THEMES[theme.id].primary}` : '1px solid #333',
+              borderRadius: 6,
+              cursor: 'pointer',
+              textAlign: 'left',
+            }}
+          >
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 4,
+                background: `linear-gradient(135deg, ${THEMES[theme.id].primary} 0%, ${THEMES[theme.id].secondary} 100%)`,
+                border: '2px solid #222',
+              }}
+            />
+            <div style={{ flex: 1 }}>
+              <div
+                style={{
+                  color: currentTheme === theme.id ? THEMES[theme.id].primary : '#aaa',
+                  fontSize: 13,
+                  fontWeight: 'bold',
+                }}
+              >
+                {theme.name}
+                {currentTheme === theme.id && <span style={{ marginLeft: 8, fontSize: 10 }}>●</span>}
+              </div>
+              <div style={{ color: '#666', fontSize: 10 }}>{theme.description}</div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+interface SettingsPanelProps {
+  currentTheme: ThemeName;
+  onThemeChange: (theme: ThemeName) => void;
+}
+
+export function SettingsPanel({ currentTheme, onThemeChange }: SettingsPanelProps) {
   const { clearAllBanks, clearAllMidiFiles } = useSettingsStore();
 
   return (
@@ -1321,8 +1363,8 @@ export function SettingsPanel() {
       <div
         style={{
           padding: '12px 20px',
-          maxWidth: 1000,
-          width: '100%',
+          maxWidth: 1350,
+          flex: 1,
           background: 'linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%)',
           borderTop: '3px solid #444',
           borderBottom: '3px solid #222',
@@ -1387,6 +1429,8 @@ export function SettingsPanel() {
 
           {/* Right column */}
           <div>
+            <ThemeSection currentTheme={currentTheme} onThemeChange={onThemeChange} />
+
             <PresetBrowser />
 
             <SessionSection />

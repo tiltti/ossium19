@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useDrumStore, DrumPattern } from '../stores/drum-store';
-import { DrumSound, DRUM_LABELS } from '../audio/drum-synth';
+import { DrumSound, DrumKit, DRUM_LABELS, DRUM_KIT_INFO } from '../audio/drum-synth';
 import { Knob } from './Knob';
 import { Theme } from '../theme';
 import { WoodPanel } from './WoodPanel';
@@ -70,10 +70,10 @@ function StepButton({ active, hasAccent, isCurrentStep, isPlaying, beat, onClick
       onTouchStart={handleMouseDown}
       onTouchEnd={handleMouseUp}
       style={{
-        width: 34,
-        height: 34,
+        width: 50,
+        height: 50,
         border: hasAccent && active ? '2px solid #ff6666' : 'none',
-        borderRadius: 5,
+        borderRadius: 6,
         background: getBackground(),
         cursor: 'pointer',
         transition: 'background 0.05s',
@@ -118,19 +118,19 @@ function DrumRow({ sound, pattern, accentPattern, currentStep, isPlaying, isMute
     }
   };
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, opacity: isMuted ? 0.4 : 1 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, opacity: isMuted ? 0.4 : 1 }}>
       {/* Mute button */}
       <button
         onClick={onMuteToggle}
         style={{
-          width: 22,
-          height: 22,
+          width: 32,
+          height: 32,
           border: 'none',
-          borderRadius: 3,
+          borderRadius: 4,
           background: isMuted ? '#c44' : '#333',
           color: isMuted ? '#fff' : '#666',
           cursor: 'pointer',
-          fontSize: 9,
+          fontSize: 11,
           fontWeight: 'bold',
         }}
         title={isMuted ? 'Unmute' : 'Mute'}
@@ -142,14 +142,14 @@ function DrumRow({ sound, pattern, accentPattern, currentStep, isPlaying, isMute
       <button
         onClick={onTrigger}
         style={{
-          width: 44,
-          height: 30,
+          width: 60,
+          height: 44,
           border: '1px solid #444',
-          borderRadius: 4,
+          borderRadius: 5,
           background: '#1a1a1a',
           color: '#aaa',
           cursor: 'pointer',
-          fontSize: 10,
+          fontSize: 13,
           fontWeight: 'bold',
           fontFamily: 'monospace',
         }}
@@ -174,6 +174,49 @@ function DrumRow({ sound, pattern, accentPattern, currentStep, isPlaying, isMute
           />
         ))}
       </div>
+    </div>
+  );
+}
+
+// Kit selector component - styled radio buttons
+interface KitSelectorProps {
+  currentKit: DrumKit;
+  kits: DrumKit[];
+  onSelect: (kit: DrumKit) => void;
+}
+
+function KitSelector({ currentKit, kits, onSelect }: KitSelectorProps) {
+  return (
+    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+      {kits.map((kit) => {
+        const info = DRUM_KIT_INFO[kit];
+        const isActive = currentKit === kit;
+        return (
+          <button
+            key={kit}
+            onClick={() => onSelect(kit)}
+            title={`${info.name} (${info.year}) - ${info.description}`}
+            style={{
+              padding: '8px 12px',
+              border: isActive ? `2px solid ${info.color}` : '1px solid #333',
+              borderRadius: 6,
+              background: isActive
+                ? `linear-gradient(180deg, ${info.color}44 0%, ${info.color}22 100%)`
+                : 'linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%)',
+              color: isActive ? info.color : '#666',
+              cursor: 'pointer',
+              fontSize: 11,
+              fontWeight: 'bold',
+              letterSpacing: 1,
+              transition: 'all 0.15s',
+              boxShadow: isActive ? `0 0 12px ${info.color}44` : 'none',
+              textShadow: isActive ? `0 0 8px ${info.color}66` : 'none',
+            }}
+          >
+            {info.name}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -381,11 +424,10 @@ function DrumPatternSelector({ currentPattern, patterns, onSelect, color = '#ff8
 }
 
 interface DrumMachineProps {
-  accentColor?: string;
   theme?: Theme;
 }
 
-export function DrumMachine({ accentColor = '#ff8c42', theme, onPanic }: DrumMachineProps & { onPanic?: () => void }) {
+export function DrumMachine({ theme, onPanic }: DrumMachineProps & { onPanic?: () => void }) {
   const {
     isInitialized,
     init,
@@ -393,6 +435,7 @@ export function DrumMachine({ accentColor = '#ff8c42', theme, onPanic }: DrumMac
     currentStep,
     volume,
     swing,
+    currentKit,
     pattern,
     currentPatternName,
     visibleTracks,
@@ -403,6 +446,7 @@ export function DrumMachine({ accentColor = '#ff8c42', theme, onPanic }: DrumMac
     stop,
     setVolume,
     setSwing,
+    setKit,
     toggleStep,
     clearPattern,
     loadPattern,
@@ -411,6 +455,7 @@ export function DrumMachine({ accentColor = '#ff8c42', theme, onPanic }: DrumMac
     toggleAccent,
     setAccentAmount,
     getPresetPatterns,
+    getAvailableKits,
     panic,
   } = useDrumStore();
 
@@ -432,6 +477,11 @@ export function DrumMachine({ accentColor = '#ff8c42', theme, onPanic }: DrumMac
   }, [isInitialized, init]);
 
   const presetPatterns = getPresetPatterns();
+  const availableKits = getAvailableKits();
+
+  // Use kit color as accent color
+  const kitInfo = DRUM_KIT_INFO[currentKit];
+  const kitColor = kitInfo.color;
 
   const borderColor = theme?.border || '#333';
   const surfaceColor = theme?.surface || '#0d0d0d';
@@ -442,7 +492,11 @@ export function DrumMachine({ accentColor = '#ff8c42', theme, onPanic }: DrumMac
     <div
       style={{
         display: 'flex',
+        justifyContent: 'center',
         alignItems: 'stretch',
+        padding: '12px 0',
+        minHeight: '100vh',
+        background: 'linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%)',
       }}
     >
       {/* Left Wood Panel */}
@@ -457,7 +511,11 @@ export function DrumMachine({ accentColor = '#ff8c42', theme, onPanic }: DrumMac
           borderLeft: 'none',
           borderRight: 'none',
           boxShadow: theme?.container.shadow || '0 4px 16px rgba(0,0,0,0.5)',
-          maxWidth: 700,
+          maxWidth: 1350,
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
         }}
       >
       {/* Header */}
@@ -482,8 +540,8 @@ export function DrumMachine({ accentColor = '#ff8c42', theme, onPanic }: DrumMac
               background: isPlaying
                 ? 'linear-gradient(180deg, #c44 0%, #922 100%)'
                 : theme?.button.gradient
-                ? `linear-gradient(180deg, ${accentColor} 0%, ${accentColor}88 100%)`
-                : accentColor,
+                ? `linear-gradient(180deg, ${kitColor} 0%, ${kitColor}88 100%)`
+                : kitColor,
               border: 'none',
               borderRadius: buttonRadius,
               color: '#000',
@@ -523,17 +581,18 @@ export function DrumMachine({ accentColor = '#ff8c42', theme, onPanic }: DrumMac
           <h3
             style={{
               margin: 0,
-              color: accentColor,
+              color: kitColor,
               fontSize: 18,
               fontWeight: theme?.headerWeight || 'bold',
               letterSpacing: 3,
+              textShadow: `0 0 10px ${kitColor}44`,
             }}
           >
-            DRTILT-08 DRUM MACHINE
+            DRTILT-08
           </h3>
-          <span style={{ fontSize: 11, color: textMuted }}>
-            {currentPatternName}
-            {!isInitialized && ' • Click to initialize'}
+          <span style={{ fontSize: 10, color: textMuted }}>
+            {kitInfo.name} • {currentPatternName}
+            {!isInitialized && ' • Click to init'}
           </span>
         </div>
 
@@ -557,6 +616,16 @@ export function DrumMachine({ accentColor = '#ff8c42', theme, onPanic }: DrumMac
         </button>
       </div>
 
+      {/* Kit selector */}
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 9, color: textMuted, marginBottom: 6, letterSpacing: 1 }}>DRUM KIT</div>
+        <KitSelector
+          currentKit={currentKit}
+          kits={availableKits}
+          onSelect={setKit}
+        />
+      </div>
+
       {/* Pattern selector and controls */}
       <div
         style={{
@@ -574,7 +643,7 @@ export function DrumMachine({ accentColor = '#ff8c42', theme, onPanic }: DrumMac
             currentPattern={currentPatternName}
             patterns={presetPatterns}
             onSelect={loadPattern}
-            color={accentColor}
+            color={kitColor}
           />
         </div>
 
@@ -619,29 +688,29 @@ export function DrumMachine({ accentColor = '#ff8c42', theme, onPanic }: DrumMac
       </div>
 
       {/* Step indicator */}
-      <div style={{ display: 'flex', gap: 3, marginBottom: 10, marginLeft: 78 }}>
+      <div style={{ display: 'flex', gap: 3, marginBottom: 10, marginLeft: 104 }}>
         {Array.from({ length: STEPS }).map((_, i) => (
           <div
             key={i}
             style={{
-              width: 34,
-              height: 5,
+              width: 50,
+              height: 6,
               borderRadius: 2,
-              background: i === currentStep && isPlaying ? accentColor : i % 4 === 0 ? '#444' : '#2a2a2a',
+              background: i === currentStep && isPlaying ? kitColor : i % 4 === 0 ? '#444' : '#2a2a2a',
             }}
           />
         ))}
       </div>
 
       {/* Beat numbers */}
-      <div style={{ display: 'flex', gap: 3, marginBottom: 6, marginLeft: 78 }}>
+      <div style={{ display: 'flex', gap: 3, marginBottom: 6, marginLeft: 104 }}>
         {[1, 2, 3, 4].map(beat => (
           <div
             key={beat}
             style={{
-              width: 34 * 4 + 3 * 3,
+              width: 50 * 4 + 3 * 3,
               textAlign: 'center',
-              fontSize: 10,
+              fontSize: 11,
               color: '#555',
               fontFamily: 'monospace',
             }}
@@ -666,7 +735,7 @@ export function DrumMachine({ accentColor = '#ff8c42', theme, onPanic }: DrumMac
             onAccentToggle={(step) => toggleAccent(sound, step)}
             onTrigger={() => triggerSound(sound)}
             onMuteToggle={() => toggleMute(sound)}
-            accentColor={accentColor}
+            accentColor={kitColor}
           />
         ))}
       </div>

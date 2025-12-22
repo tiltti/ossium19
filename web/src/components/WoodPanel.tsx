@@ -39,7 +39,6 @@ export function WoodPanel({ side }: WoodPanelProps) {
     <div
       style={{
         width: 28,
-        minHeight: 400,
         alignSelf: 'stretch',
         background: woodGradient,
         position: 'relative',

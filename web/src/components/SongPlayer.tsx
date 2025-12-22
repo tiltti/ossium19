@@ -368,6 +368,8 @@ interface SongPlayerProps {
   globalBpm: number;
   // General
   accentColor?: string;
+  // Tab switch callback - called when demo starts playing to switch to correct synth tab
+  onSynthEngineChange?: (engine: 'synth' | 'fm') => void;
 }
 
 export function SongPlayer({
@@ -380,7 +382,8 @@ export function SongPlayer({
   fmInit,
   fmIsInit,
   globalBpm,
-  accentColor = '#64c8ff'
+  accentColor = '#64c8ff',
+  onSynthEngineChange,
 }: SongPlayerProps) {
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -430,6 +433,11 @@ export function SongPlayer({
     // Set synth engine for this song
     const synthEngine = song.synthEngine === 'fm' ? 'fm' : 'subtractive';
     currentSynthEngineRef.current = synthEngine;
+
+    // Switch to correct tab
+    if (onSynthEngineChange) {
+      onSynthEngineChange(synthEngine === 'fm' ? 'fm' : 'synth');
+    }
 
     // Initialize the correct synth if needed
     if (synthEngine === 'fm' && !fmIsInit) {
@@ -496,7 +504,7 @@ export function SongPlayer({
       }
     }, songDuration);
     timeoutsRef.current.push(endTimeout);
-  }, [onSubNoteOn, onSubNoteOff, subInit, subIsInit, onFmNoteOn, onFmNoteOff, fmInit, fmIsInit, stopPlayback, globalBpm, drumInitialized, drumInit, drumLoadPattern, drumPlay, drumStop, getPresetPatterns]);
+  }, [onSubNoteOn, onSubNoteOff, subInit, subIsInit, onFmNoteOn, onFmNoteOff, fmInit, fmIsInit, stopPlayback, globalBpm, drumInitialized, drumInit, drumLoadPattern, drumPlay, drumStop, getPresetPatterns, onSynthEngineChange]);
 
   const handlePlay = () => {
     if (!selectedSong) return;

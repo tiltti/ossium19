@@ -11,10 +11,11 @@ import { SettingsPanel } from './components/SettingsPanel';
 import { ArpeggiatorPanel } from './components/ArpeggiatorPanel';
 import { MixerPanel } from './components/MixerPanel';
 import { PedalboardPanel } from './components/PedalboardPanel';
+import { SpaceFxPanel } from './components/SpaceFxPanel';
 import { Knob } from './components/Knob';
-import { AudioMeter } from './components/AudioMeter';
 import { SevenSegmentDisplay } from './components/LcdScreen';
 import { GlobalVisualizer } from './components/GlobalVisualizer';
+import { WoodPanel } from './components/WoodPanel';
 import { THEMES, ThemeName } from './theme';
 
 // App modes - tab-based navigation
@@ -84,7 +85,7 @@ export function App() {
 
   // Accent color based on mode
   const getAccentColor = () => {
-    if (appMode === 'drums') return theme.secondary;
+    if (appMode === 'drums') return '#44ff88'; // Green for drums
     if (appMode === 'fm') return theme.secondary;
     if (appMode === 'mixer') return '#64c8ff';
     if (appMode === 'fx') return '#ff64c8';
@@ -144,14 +145,13 @@ export function App() {
     }
   };
 
-  // Tab configuration
+  // Tab configuration (without settings - rendered separately at end)
   const tabs: { id: AppMode; label: string; icon?: string }[] = [
     { id: 'synth', label: 'SYNTH' },
     { id: 'fm', label: 'FM' },
     { id: 'drums', label: 'DRUMS' },
     { id: 'mixer', label: 'MIXER' },
     { id: 'fx', label: 'FX' },
-    { id: 'settings', label: 'SETTINGS' },
   ];
 
   return (
@@ -166,194 +166,206 @@ export function App() {
         flexDirection: 'column',
       }}
     >
-      {/* Header */}
+      {/* Studio Display Header */}
       <header
         style={{
-          padding: '10px 20px',
-          borderBottom: `1px solid ${theme.border}`,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'stretch',
           background: 'linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%)',
+          borderBottom: `1px solid ${theme.border}`,
         }}
       >
-        {/* Top row: Title + Theme selector */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        {/* Left Wood Panel */}
+        <WoodPanel side="left" />
+
+        {/* Main Header Content */}
+        <div
+          style={{
+            flex: 1,
+            maxWidth: 1350,
+            padding: '10px 16px',
+            background: 'linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%)',
+            borderTop: '3px solid #444',
+            borderBottom: '3px solid #222',
+          }}
+        >
+          {/* Row 1: Title + Tabs */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 8 }}>
             <h1
               style={{
                 margin: 0,
-                fontSize: 22,
-                fontWeight: theme.headerWeight,
-                letterSpacing: 3,
                 color: accentColor,
+                fontSize: 18,
+                fontWeight: 'bold',
                 textShadow: `0 0 10px ${accentColor}44`,
+                letterSpacing: 2,
               }}
             >
               OSSIAN-19
             </h1>
-            <span style={{ color: theme.textMuted, fontSize: 10 }}>
+            <span style={{ color: theme.textMuted, fontSize: 9 }}>
               {!isInitialized && isSynthMode && '(Click to start)'}
-              {drumIsPlaying && <span style={{ color: theme.secondary }}>● Playing</span>}
             </span>
-          </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {/* Audio Performance Meter */}
-            <AudioMeter audioContext={audioCtx} />
+            {/* Tabs */}
+            <div style={{ display: 'flex', gap: 3, marginLeft: 'auto' }}>
+              {tabs.map((tab) => {
+                const isActive = appMode === tab.id;
+                const tabColor = tab.id === 'synth' ? theme.primary
+                  : tab.id === 'fm' ? theme.secondary
+                  : tab.id === 'drums' ? theme.secondary
+                  : tab.id === 'mixer' ? '#64c8ff'
+                  : tab.id === 'fx' ? '#ff64c8'
+                  : theme.textMuted;
 
-            {/* Theme selector */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 9, color: theme.textMuted }}>THEME</span>
-              {(Object.keys(COLOR_THEMES) as ColorTheme[]).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setColorTheme(t)}
-                  style={{
-                    width: 20,
-                    height: 20,
-                    borderRadius: 3,
-                    border: colorTheme === t ? `2px solid ${COLOR_THEMES[t].primary}` : `1px solid ${theme.border}`,
-                    background: `linear-gradient(135deg, ${COLOR_THEMES[t].primary} 0%, ${COLOR_THEMES[t].secondary} 100%)`,
-                    cursor: 'pointer',
-                    boxShadow: colorTheme === t ? `0 0 6px ${COLOR_THEMES[t].primary}44` : 'none',
-                  }}
-                  title={t.charAt(0).toUpperCase() + t.slice(1)}
-                />
-              ))}
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setAppMode(tab.id)}
+                    style={{
+                      padding: '5px 10px',
+                      border: isActive ? `2px solid ${tabColor}` : `1px solid ${theme.border}`,
+                      borderRadius: 3,
+                      background: isActive
+                        ? `linear-gradient(180deg, ${tabColor} 0%, ${tabColor}cc 100%)`
+                        : 'linear-gradient(180deg, #252525 0%, #1a1a1a 100%)',
+                      color: isActive ? '#000' : theme.textMuted,
+                      cursor: 'pointer',
+                      fontSize: 9,
+                      fontWeight: 'bold',
+                      letterSpacing: 1,
+                      transition: 'all 0.15s',
+                      boxShadow: isActive ? `0 0 8px ${tabColor}44` : 'none',
+                    }}
+                  >
+                    {tab.label}
+                    {tab.id === 'drums' && drumIsPlaying && ' ●'}
+                  </button>
+                );
+              })}
+              {/* ARP Toggle */}
+              <button
+                onClick={handleArpClick}
+                style={{
+                  padding: '5px 10px',
+                  border: showArp && isSynthMode ? '2px solid #64c8ff' : `1px solid ${theme.border}`,
+                  borderRadius: 3,
+                  background: showArp && isSynthMode
+                    ? 'linear-gradient(180deg, #64c8ff 0%, #4090cc 100%)'
+                    : 'linear-gradient(180deg, #252525 0%, #1a1a1a 100%)',
+                  color: showArp && isSynthMode ? '#000' : theme.textMuted,
+                  cursor: 'pointer',
+                  fontSize: 9,
+                  fontWeight: 'bold',
+                  letterSpacing: 1,
+                  transition: 'all 0.15s',
+                  boxShadow: showArp && isSynthMode ? '0 0 8px #64c8ff44' : 'none',
+                }}
+              >
+                ARP {showArp && isSynthMode ? '▼' : '▶'}
+              </button>
+              {/* Settings - always last */}
+              <button
+                onClick={() => setAppMode('settings')}
+                style={{
+                  padding: '5px 10px',
+                  border: appMode === 'settings' ? `2px solid ${theme.textMuted}` : `1px solid ${theme.border}`,
+                  borderRadius: 3,
+                  background: appMode === 'settings'
+                    ? `linear-gradient(180deg, ${theme.textMuted} 0%, ${theme.textMuted}cc 100%)`
+                    : 'linear-gradient(180deg, #252525 0%, #1a1a1a 100%)',
+                  color: appMode === 'settings' ? '#000' : theme.textMuted,
+                  cursor: 'pointer',
+                  fontSize: 9,
+                  fontWeight: 'bold',
+                  letterSpacing: 1,
+                  transition: 'all 0.15s',
+                  boxShadow: appMode === 'settings' ? `0 0 8px ${theme.textMuted}44` : 'none',
+                }}
+              >
+                SETTINGS
+              </button>
             </div>
           </div>
-        </div>
 
-        {/* Tab Navigation */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          {/* Main Tabs */}
-          <div style={{ display: 'flex', gap: 4 }}>
-            {tabs.map((tab) => {
-              const isActive = appMode === tab.id;
-              const tabColor = tab.id === 'synth' ? theme.primary
-                : tab.id === 'fm' ? theme.secondary
-                : tab.id === 'drums' ? theme.secondary
-                : tab.id === 'mixer' ? '#64c8ff'
-                : tab.id === 'fx' ? '#ff64c8'
-                : theme.textMuted;
-
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setAppMode(tab.id)}
-                  style={{
-                    padding: '8px 16px',
-                    border: isActive ? `2px solid ${tabColor}` : `1px solid ${theme.border}`,
-                    borderRadius: 4,
-                    background: isActive
-                      ? `linear-gradient(180deg, ${tabColor} 0%, ${tabColor}cc 100%)`
-                      : 'linear-gradient(180deg, #252525 0%, #1a1a1a 100%)',
-                    color: isActive ? '#000' : theme.textMuted,
-                    cursor: 'pointer',
-                    fontSize: 10,
-                    fontWeight: 'bold',
-                    letterSpacing: 1,
-                    transition: 'all 0.15s',
-                    boxShadow: isActive ? `0 0 8px ${tabColor}44` : 'none',
-                  }}
-                >
-                  {tab.label}
-                  {tab.id === 'drums' && drumIsPlaying && ' ●'}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* ARP Toggle - special button */}
-          <button
-            onClick={handleArpClick}
-            style={{
-              padding: '8px 14px',
-              border: showArp && isSynthMode ? '2px solid #64c8ff' : `1px solid ${theme.border}`,
-              borderRadius: 4,
-              background: showArp && isSynthMode
-                ? 'linear-gradient(180deg, #64c8ff 0%, #4090cc 100%)'
-                : 'linear-gradient(180deg, #252525 0%, #1a1a1a 100%)',
-              color: showArp && isSynthMode ? '#000' : theme.textMuted,
-              cursor: 'pointer',
-              fontSize: 10,
-              fontWeight: 'bold',
-              letterSpacing: 1,
-              transition: 'all 0.15s',
-              boxShadow: showArp && isSynthMode ? '0 0 8px #64c8ff44' : 'none',
-            }}
-          >
-            ARP {showArp && isSynthMode ? '▼' : '▶'}
-          </button>
-
-          {/* Divider */}
-          <div style={{ width: 1, height: 24, background: theme.border, margin: '0 8px' }} />
-
-          {/* Demo Player */}
-          <SongPlayer
-            onSubNoteOn={subNoteOn}
-            onSubNoteOff={subNoteOff}
-            subInit={subInit}
-            subIsInit={subIsInit}
-            onFmNoteOn={fm6NoteOn}
-            onFmNoteOff={fm6NoteOff}
-            fmInit={fm6Init}
-            fmIsInit={fm6IsInit}
-            globalBpm={globalBpm}
-            accentColor={accentColor}
-          />
-
-          {/* Divider */}
-          <div style={{ width: 1, height: 24, background: theme.border, margin: '0 8px' }} />
-
-          {/* Global BPM Control */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div
-              style={{
-                background: '#0a0a0f',
-                border: '2px solid #1a1a1a',
-                borderRadius: 4,
-                padding: '4px 8px',
-                boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.8)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-              }}
-            >
-              <SevenSegmentDisplay value={globalBpm} digits={3} color="amber" />
-              <span style={{ fontSize: 9, color: '#666', marginLeft: 2 }}>BPM</span>
-            </div>
-            <Knob
-              value={globalBpm}
-              min={60}
-              max={200}
-              step={1}
-              onChange={setGlobalBpm}
-              size={32}
-              accentColor="#ff8c42"
-              label=""
-              hideValue
+          {/* Row 2: Demo Player */}
+          <div style={{ marginBottom: 10 }}>
+            <SongPlayer
+              onSubNoteOn={subNoteOn}
+              onSubNoteOff={subNoteOff}
+              subInit={subInit}
+              subIsInit={subIsInit}
+              onFmNoteOn={fm6NoteOn}
+              onFmNoteOff={fm6NoteOff}
+              fmInit={fm6Init}
+              fmIsInit={fm6IsInit}
+              globalBpm={globalBpm}
+              accentColor={accentColor}
+              onSynthEngineChange={setAppMode}
             />
           </div>
 
-          {/* Divider */}
-          <div style={{ width: 1, height: 24, background: theme.border, margin: '0 8px' }} />
+          {/* Row 3: LCD Displays + BPM */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+            {/* Main LCD Displays */}
+            <div style={{ flex: 1 }}>
+              <GlobalVisualizer
+                mode={appMode}
+                lcdMain={theme.lcd?.main || 'green'}
+                lcdAlt={theme.lcd?.alt || 'amber'}
+                audioContext={audioCtx}
+              />
+            </div>
 
-          {/* Global Visualizer */}
-          <GlobalVisualizer
-            mode={appMode}
-            lcdMain={theme.lcd?.main || 'green'}
-            lcdAlt={theme.lcd?.alt || 'amber'}
-          />
+            {/* BPM Display */}
+            <div>
+              <div style={{ fontSize: 9, color: '#888', letterSpacing: 1, marginBottom: 2 }}>BPM</div>
+              <div
+                style={{
+                  background: '#0a0a0f',
+                  border: '2px solid #1a1a1a',
+                  borderRadius: 4,
+                  padding: 3,
+                  boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.8)',
+                }}
+              >
+                <div style={{
+                  height: 90,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  padding: '0 8px',
+                }}>
+                  <SevenSegmentDisplay value={globalBpm} digits={3} color="amber" />
+                  <Knob
+                    value={globalBpm}
+                    min={60}
+                    max={200}
+                    step={1}
+                    onChange={setGlobalBpm}
+                    size={44}
+                    accentColor="#ff8c42"
+                    label=""
+                    hideValue
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
+
+        {/* Right Wood Panel */}
+        <WoodPanel side="right" />
       </header>
 
       {/* Arpeggiator Panel - collapsible, only for synth modes */}
       {showArp && isSynthMode && (
-        <div style={{ padding: '0 20px', marginTop: 8 }}>
-          <ArpeggiatorPanel
-            onNoteOn={handleNoteOn}
-            onNoteOff={handleNoteOff}
-          />
-        </div>
+        <ArpeggiatorPanel
+          onNoteOn={handleNoteOn}
+          onNoteOff={handleNoteOff}
+        />
       )}
 
       {/* Main Content Area */}
@@ -365,18 +377,19 @@ export function App() {
           <Fm6OpPanel theme={theme} onPanic={handleGlobalPanic} />
         )}
         {appMode === 'drums' && (
-          <div style={{ padding: '20px', display: 'flex', justifyContent: 'center' }}>
-            <DrumMachine accentColor={accentColor} theme={theme} onPanic={handleGlobalPanic} />
-          </div>
+          <DrumMachine theme={theme} onPanic={handleGlobalPanic} />
         )}
         {appMode === 'mixer' && (
           <MixerPanel theme={theme} />
         )}
         {appMode === 'fx' && (
-          <PedalboardPanel theme={theme} />
+          <>
+            <SpaceFxPanel theme={theme} />
+            <PedalboardPanel theme={theme} />
+          </>
         )}
         {appMode === 'settings' && (
-          <SettingsPanel />
+          <SettingsPanel currentTheme={colorTheme} onThemeChange={setColorTheme} />
         )}
       </main>
 

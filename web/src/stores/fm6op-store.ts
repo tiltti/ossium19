@@ -70,6 +70,8 @@ interface Fm6OpState {
 
   // Audio analysis
   getAnalyser: () => AnalyserNode | null;
+  getAudioContext: () => AudioContext | null;
+  getEffectsOutput: () => AudioNode | null;
   getActiveVoiceCount: () => number;
 }
 
@@ -317,5 +319,7 @@ export const useFm6OpStore = create<Fm6OpState>((set, get) => ({
   },
 
   getAnalyser: () => fm6opEngine.getAnalyserNode(),
+  getAudioContext: () => fm6opEngine.getAudioContext(),
+  getEffectsOutput: () => fm6opEngine.getEffectsOutput(),
   getActiveVoiceCount: () => fm6opEngine.getActiveVoiceCount(),
 }));

@@ -3,7 +3,7 @@ import React, { useRef, useEffect, useMemo } from 'react';
 export type LcdColor = 'green' | 'amber' | 'blue' | 'white';
 
 interface LcdScreenProps {
-  width: number;
+  width: number | string;
   height: number;
   pixelSize?: number;
   color?: LcdColor;
