@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { DrumSynth, DrumSound, DrumKit, DRUM_SOUNDS, DRUM_KITS } from '../audio/drum-synth';
+import { SpaceReverb, SpaceReverbParams } from '../audio/space-reverb';
+import { useSpaceFxStore } from './space-fx-store';
 
 const STEPS = 16;
 
@@ -270,6 +272,7 @@ interface DrumStore {
   isInitialized: boolean;
   ctx: AudioContext | null;
   drumSynth: DrumSynth | null;
+  spaceReverb: SpaceReverb | null;
 
   // Playback state
   isPlaying: boolean;
@@ -320,6 +323,9 @@ interface DrumStore {
   getAnalyser: () => AnalyserNode | null;
   getAudioContext: () => AudioContext | null;
   getEffectsOutput: () => AudioNode | null;
+
+  // OSSIAN SPACE reverb
+  setSpaceReverbParams: (params: SpaceReverbParams) => void;
 }
 
 export const useDrumStore = create<DrumStore>((set, get) => {
@@ -329,6 +335,7 @@ export const useDrumStore = create<DrumStore>((set, get) => {
     isInitialized: false,
     ctx: null,
     drumSynth: null,
+    spaceReverb: null,
     isPlaying: false,
     currentStep: 0,
     bpm: 120,
@@ -353,12 +360,23 @@ export const useDrumStore = create<DrumStore>((set, get) => {
       const ctx = new AudioContext();
       await ctx.resume();
 
-      const drumSynth = new DrumSynth(ctx, ctx.destination);
+      // Create OSSIAN SPACE reverb
+      const spaceReverb = new SpaceReverb(ctx);
+      spaceReverb.getOutput().connect(ctx.destination);
+
+      // Route drums through SpaceReverb
+      const drumSynth = new DrumSynth(ctx, spaceReverb.getInput());
+
+      // Subscribe to OSSIAN SPACE store changes
+      useSpaceFxStore.getState().subscribeToChanges((spaceParams) => {
+        spaceReverb.setParams(spaceParams);
+      });
 
       set({
         isInitialized: true,
         ctx,
         drumSynth,
+        spaceReverb,
       });
     },
 
@@ -554,6 +572,11 @@ export const useDrumStore = create<DrumStore>((set, get) => {
     getEffectsOutput: () => {
       const { drumSynth } = get();
       return drumSynth?.getEffectsOutput() ?? null;
+    },
+
+    setSpaceReverbParams: (params: SpaceReverbParams) => {
+      const { spaceReverb } = get();
+      spaceReverb?.setParams(params);
     },
   };
 });

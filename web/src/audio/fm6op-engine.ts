@@ -2,6 +2,7 @@
 
 import initWasm, { Ossian19Fm6Op } from '../wasm/ossian19_wasm';
 import { EffectsChain, EffectParams, defaultEffectParams } from './effects';
+import { SpaceReverb, SpaceReverbParams } from './space-reverb';
 
 export interface FmOperatorParams {
   ratio: number;
@@ -94,6 +95,7 @@ export class Fm6OpEngine {
   private scriptNode: ScriptProcessorNode | null = null;
   private analyser: AnalyserNode | null = null;
   private effectsChain: EffectsChain | null = null;
+  private spaceReverb: SpaceReverb | null = null;
   private isInitialized = false;
   private params: Fm6OpParams = JSON.parse(JSON.stringify(defaultFm6OpParams));
   private effectParams: EffectParams = { ...defaultEffectParams };
@@ -122,6 +124,9 @@ export class Fm6OpEngine {
     this.effectsChain = new EffectsChain(this.context);
     this.effectsChain.setParams(this.effectParams);
 
+    // Create OSSIAN SPACE reverb
+    this.spaceReverb = new SpaceReverb(this.context);
+
     const bufferSize = 1024;
     this.scriptNode = this.context.createScriptProcessor(bufferSize, 0, 2);
 
@@ -134,8 +139,10 @@ export class Fm6OpEngine {
       this.synth.processStereo(left, right);
     };
 
+    // Audio routing: scriptNode → effectsChain → spaceReverb → analyser → destination
     this.scriptNode.connect(this.effectsChain.getInput());
-    this.effectsChain.getOutput().connect(this.analyser);
+    this.effectsChain.getOutput().connect(this.spaceReverb.getInput());
+    this.spaceReverb.getOutput().connect(this.analyser);
     this.analyser.connect(this.context.destination);
 
     this.isInitialized = true;
@@ -343,6 +350,11 @@ export class Fm6OpEngine {
     this.applyAllParams();
   }
 
+  // OSSIAN SPACE reverb control
+  setSpaceReverbParams(params: SpaceReverbParams): void {
+    this.spaceReverb?.setParams(params);
+  }
+
   dispose(): void {
     this.panic();
 
@@ -354,6 +366,11 @@ export class Fm6OpEngine {
     if (this.effectsChain) {
       this.effectsChain.dispose();
       this.effectsChain = null;
+    }
+
+    if (this.spaceReverb) {
+      this.spaceReverb.dispose();
+      this.spaceReverb = null;
     }
 
     if (this.analyser) {

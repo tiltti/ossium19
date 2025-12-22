@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { fm6opEngine, Fm6OpParams, defaultFm6OpParams } from '../audio/fm6op-engine';
 import { EffectParams, defaultEffectParams } from '../audio/effects';
 import { useFxStore } from './fx-store';
+import { useSpaceFxStore } from './space-fx-store';
 
 // FM6Op Presets
 export interface Fm6OpPreset {
@@ -90,6 +91,10 @@ export const useFm6OpStore = create<Fm6OpState>((set, get) => ({
     // Subscribe to global FX store changes
     useFxStore.getState().subscribeToChanges((effectParams) => {
       fm6opEngine.setEffectParams(effectParams);
+    });
+    // Subscribe to OSSIAN SPACE reverb store changes
+    useSpaceFxStore.getState().subscribeToChanges((spaceParams) => {
+      fm6opEngine.setSpaceReverbParams(spaceParams);
     });
     set({ isInitialized: true });
   },

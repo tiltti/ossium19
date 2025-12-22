@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { audioEngine, SynthParams, defaultParams, Waveform, FilterSlope, EffectParams, defaultEffectParams } from '../audio/engine';
 import { Preset, factoryPresets, getPresetsByCategory } from '../audio/presets';
 import { useFxStore } from './fx-store';
+import { useSpaceFxStore } from './space-fx-store';
 
 interface SynthState {
   isInitialized: boolean;
@@ -80,6 +81,10 @@ export const useSynthStore = create<SynthState>((set) => ({
     // Subscribe to global FX store changes
     useFxStore.getState().subscribeToChanges((effectParams) => {
       audioEngine.setEffectParams(effectParams);
+    });
+    // Subscribe to OSSIAN SPACE reverb store changes
+    useSpaceFxStore.getState().subscribeToChanges((spaceParams) => {
+      audioEngine.setSpaceReverbParams(spaceParams);
     });
     set({ isInitialized: true });
   },

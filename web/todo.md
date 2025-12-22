@@ -12,12 +12,6 @@ Convert OSSIAN-19 to native AU plugin using nih-plug:
 
 ## Known Issues
 
-### OSSIAN SPACE Reverb Not Connected
-- The SpaceFxPanel UI and store exist and work
-- But the SpaceReverb audio class is never instantiated or connected to the audio chain
-- The store's `subscribeToChanges` is never called by any audio engine
-- **Fix:** Create SpaceReverb instance in audio engines and subscribe to store changes
-
 ### Mixer Pan Controls Not Connected
 - Pan knobs work and store state in MixerPanel
 - But pan values are never applied to the audio routing
@@ -36,6 +30,7 @@ Convert OSSIAN-19 to native AU plugin using nih-plug:
 
 ## Completed
 
+- [x] OSSIAN SPACE reverb connected to all audio engines (synth, fm6op, drums)
 - [x] SYX preset loading - clicking loads into FM synth and switches tab
 - [x] Console.log cleanup in production stores and engines
 - [x] Responsive spectrum display (no more empty space on right)

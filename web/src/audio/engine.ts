@@ -2,6 +2,7 @@
 
 import initWasm, { Ossian19Synth } from '../wasm/ossian19_wasm';
 import { EffectsChain, EffectParams, defaultEffectParams } from './effects';
+import { SpaceReverb, SpaceReverbParams } from './space-reverb';
 
 export type Waveform = 'sine' | 'saw' | 'square' | 'triangle';
 
@@ -68,6 +69,7 @@ export class AudioEngine {
   private scriptNode: ScriptProcessorNode | null = null;
   private analyser: AnalyserNode | null = null;
   private effectsChain: EffectsChain | null = null;
+  private spaceReverb: SpaceReverb | null = null;
   private isInitialized = false;
   private params: SynthParams = { ...defaultParams };
   private effectParams: EffectParams = { ...defaultEffectParams };
@@ -100,6 +102,9 @@ export class AudioEngine {
     this.effectsChain = new EffectsChain(this.context);
     this.effectsChain.setParams(this.effectParams);
 
+    // Create OSSIAN SPACE reverb
+    this.spaceReverb = new SpaceReverb(this.context);
+
     // Use ScriptProcessorNode for audio processing
     // (AudioWorklet would be better but requires more setup)
     // Larger buffer = less glitches, but more latency
@@ -115,9 +120,10 @@ export class AudioEngine {
       this.synth.processStereo(left, right);
     };
 
-    // Route: ScriptNode -> Effects -> Analyser -> Destination
+    // Route: ScriptNode -> Effects -> SpaceReverb -> Analyser -> Destination
     this.scriptNode.connect(this.effectsChain.getInput());
-    this.effectsChain.getOutput().connect(this.analyser);
+    this.effectsChain.getOutput().connect(this.spaceReverb.getInput());
+    this.spaceReverb.getOutput().connect(this.analyser);
     this.analyser.connect(this.context.destination);
 
     this.isInitialized = true;
@@ -318,6 +324,11 @@ export class AudioEngine {
     return this.synth?.activeVoiceCount() ?? 0;
   }
 
+  // OSSIAN SPACE reverb control
+  setSpaceReverbParams(params: SpaceReverbParams): void {
+    this.spaceReverb?.setParams(params);
+  }
+
   dispose(): void {
     this.panic();
 
@@ -329,6 +340,11 @@ export class AudioEngine {
     if (this.effectsChain) {
       this.effectsChain.dispose();
       this.effectsChain = null;
+    }
+
+    if (this.spaceReverb) {
+      this.spaceReverb.dispose();
+      this.spaceReverb = null;
     }
 
     if (this.analyser) {
