@@ -3,6 +3,7 @@ import { useSettingsStore, LoadedBank } from '../stores/settings-store';
 import { useSynthStore } from '../stores/synth-store';
 import { useFm4OpStore } from '../stores/fm4op-store';
 import { useFm6OpStore } from '../stores/fm6op-store';
+import { useSessionStore } from '../stores/session-store';
 import { WoodPanel } from './WoodPanel';
 import { DX7Voice } from '../audio/dx7-syx-parser';
 import { midiPlayer } from '../audio/midi-player';
@@ -992,6 +993,313 @@ function AboutSection() {
   );
 }
 
+// Session save/load section
+function SessionSection() {
+  const {
+    slots,
+    currentSlot,
+    isDirty,
+    lastSaved,
+    autoSaveEnabled,
+    saveToLocalStorage,
+    loadFromLocalStorage,
+    saveToSlot,
+    loadFromSlot,
+    clearSlot,
+    exportSession,
+    importSession,
+    resetToDefault,
+    setAutoSave,
+  } = useSessionStore();
+
+  const [showExport, setShowExport] = useState(false);
+  const [importText, setImportText] = useState('');
+  const [importError, setImportError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleExport = () => {
+    const json = exportSession();
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ossian19-session-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImport = () => {
+    if (!importText.trim()) {
+      setImportError('Paste JSON data first');
+      return;
+    }
+    const success = importSession(importText);
+    if (success) {
+      setImportText('');
+      setImportError(null);
+      setShowExport(false);
+    } else {
+      setImportError('Invalid JSON format');
+    }
+  };
+
+  const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      const success = importSession(text);
+      if (!success) {
+        setImportError('Invalid session file');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  return (
+    <Section title="Session">
+      {/* Auto-save toggle */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 12,
+          padding: '8px 0',
+          borderBottom: '1px solid #333',
+        }}
+      >
+        <div>
+          <div style={{ color: '#ddd', fontSize: 11, fontWeight: 'bold' }}>Auto-Save</div>
+          <div style={{ color: '#666', fontSize: 9 }}>
+            {lastSaved ? `Last saved: ${new Date(lastSaved).toLocaleTimeString()}` : 'Not saved yet'}
+          </div>
+        </div>
+        <button
+          onClick={() => setAutoSave(!autoSaveEnabled)}
+          style={{
+            padding: '6px 12px',
+            fontSize: 10,
+            fontWeight: 'bold',
+            border: autoSaveEnabled ? '1px solid #4a4' : '1px solid #555',
+            borderRadius: 4,
+            background: autoSaveEnabled ? '#4a4' : '#333',
+            color: autoSaveEnabled ? '#000' : '#888',
+            cursor: 'pointer',
+          }}
+        >
+          {autoSaveEnabled ? 'ON' : 'OFF'}
+        </button>
+      </div>
+
+      {/* Manual save/load */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+        <button
+          onClick={saveToLocalStorage}
+          style={{
+            flex: 1,
+            padding: '8px 0',
+            fontSize: 10,
+            fontWeight: 'bold',
+            border: '1px solid #555',
+            borderRadius: 4,
+            background: isDirty ? ACCENT_COLOR : '#333',
+            color: isDirty ? '#000' : '#888',
+            cursor: 'pointer',
+          }}
+        >
+          SAVE NOW {isDirty && '●'}
+        </button>
+        <button
+          onClick={loadFromLocalStorage}
+          style={{
+            flex: 1,
+            padding: '8px 0',
+            fontSize: 10,
+            fontWeight: 'bold',
+            border: '1px solid #555',
+            borderRadius: 4,
+            background: '#333',
+            color: '#888',
+            cursor: 'pointer',
+          }}
+        >
+          LOAD
+        </button>
+        <button
+          onClick={resetToDefault}
+          style={{
+            flex: 1,
+            padding: '8px 0',
+            fontSize: 10,
+            fontWeight: 'bold',
+            border: '1px solid #555',
+            borderRadius: 4,
+            background: '#333',
+            color: '#888',
+            cursor: 'pointer',
+          }}
+        >
+          RESET
+        </button>
+      </div>
+
+      {/* Save slots */}
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ color: '#888', fontSize: 9, marginBottom: 6, textTransform: 'uppercase' }}>
+          Save Slots
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4 }}>
+          {slots.map((slot, i) => (
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <button
+                onClick={() => slot ? loadFromSlot(i) : saveToSlot(i)}
+                style={{
+                  padding: '6px 4px',
+                  fontSize: 9,
+                  fontWeight: 'bold',
+                  border: currentSlot === i ? `1px solid ${ACCENT_COLOR}` : '1px solid #444',
+                  borderRadius: 3,
+                  background: slot ? '#2a2a2a' : '#1a1a1a',
+                  color: slot ? '#aaa' : '#555',
+                  cursor: 'pointer',
+                }}
+              >
+                {i + 1}: {slot ? 'LOAD' : 'EMPTY'}
+              </button>
+              {slot && (
+                <button
+                  onClick={() => clearSlot(i)}
+                  style={{
+                    padding: '2px',
+                    fontSize: 8,
+                    border: '1px solid #333',
+                    borderRadius: 2,
+                    background: 'transparent',
+                    color: '#666',
+                    cursor: 'pointer',
+                  }}
+                >
+                  clear
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Export/Import */}
+      <div>
+        <button
+          onClick={() => setShowExport(!showExport)}
+          style={{
+            width: '100%',
+            padding: '8px 0',
+            fontSize: 10,
+            fontWeight: 'bold',
+            border: '1px solid #555',
+            borderRadius: 4,
+            background: '#222',
+            color: '#888',
+            cursor: 'pointer',
+            marginBottom: showExport ? 8 : 0,
+          }}
+        >
+          {showExport ? 'CLOSE' : 'EXPORT / IMPORT'}
+        </button>
+
+        {showExport && (
+          <div style={{ background: '#111', padding: 8, borderRadius: 4 }}>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+              <button
+                onClick={handleExport}
+                style={{
+                  flex: 1,
+                  padding: '6px 0',
+                  fontSize: 9,
+                  fontWeight: 'bold',
+                  border: '1px solid #4a4',
+                  borderRadius: 4,
+                  background: '#4a4',
+                  color: '#000',
+                  cursor: 'pointer',
+                }}
+              >
+                EXPORT JSON
+              </button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept=".json"
+                onChange={handleFileImport}
+                style={{ display: 'none' }}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  flex: 1,
+                  padding: '6px 0',
+                  fontSize: 9,
+                  fontWeight: 'bold',
+                  border: '1px solid #555',
+                  borderRadius: 4,
+                  background: '#333',
+                  color: '#888',
+                  cursor: 'pointer',
+                }}
+              >
+                IMPORT FILE
+              </button>
+            </div>
+
+            <textarea
+              value={importText}
+              onChange={(e) => setImportText(e.target.value)}
+              placeholder="Or paste JSON here..."
+              style={{
+                width: '100%',
+                height: 60,
+                background: '#0a0a0a',
+                border: '1px solid #333',
+                borderRadius: 4,
+                color: '#888',
+                fontSize: 9,
+                fontFamily: 'monospace',
+                padding: 6,
+                resize: 'none',
+              }}
+            />
+            {importText && (
+              <button
+                onClick={handleImport}
+                style={{
+                  width: '100%',
+                  marginTop: 4,
+                  padding: '6px 0',
+                  fontSize: 9,
+                  fontWeight: 'bold',
+                  border: '1px solid #44a',
+                  borderRadius: 4,
+                  background: '#44a',
+                  color: '#fff',
+                  cursor: 'pointer',
+                }}
+              >
+                IMPORT PASTED JSON
+              </button>
+            )}
+            {importError && (
+              <div style={{ color: '#f44', fontSize: 9, marginTop: 4 }}>{importError}</div>
+            )}
+          </div>
+        )}
+      </div>
+    </Section>
+  );
+}
+
 export function SettingsPanel() {
   const { clearAllBanks, clearAllMidiFiles } = useSettingsStore();
 
@@ -1080,6 +1388,8 @@ export function SettingsPanel() {
           {/* Right column */}
           <div>
             <PresetBrowser />
+
+            <SessionSection />
 
             <AboutSection />
           </div>

@@ -46,22 +46,33 @@ export class DrumSynth {
   private ctx: AudioContext;
   private masterGain: GainNode;
   private compressor: DynamicsCompressorNode;
+  private analyser: AnalyserNode;
 
   constructor(ctx: AudioContext, destination: AudioNode) {
     this.ctx = ctx;
 
-    // Master chain: gain -> compressor -> destination
+    // Create analyser for visualizations
+    this.analyser = ctx.createAnalyser();
+    this.analyser.fftSize = 2048;
+    this.analyser.smoothingTimeConstant = 0.3;
+
+    // Master chain: gain -> compressor -> analyser -> destination
     this.compressor = ctx.createDynamicsCompressor();
     this.compressor.threshold.value = -12;
     this.compressor.knee.value = 6;
     this.compressor.ratio.value = 4;
     this.compressor.attack.value = 0.003;
     this.compressor.release.value = 0.1;
-    this.compressor.connect(destination);
+    this.compressor.connect(this.analyser);
+    this.analyser.connect(destination);
 
     this.masterGain = ctx.createGain();
     this.masterGain.gain.value = 0.8;
     this.masterGain.connect(this.compressor);
+  }
+
+  getAnalyser(): AnalyserNode {
+    return this.analyser;
   }
 
   setVolume(volume: number) {

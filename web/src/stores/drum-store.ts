@@ -287,6 +287,10 @@ interface DrumStore {
   setAccentAmount: (amount: number) => void;
   getPresetPatterns: () => DrumPattern[];
   panic: () => void;
+
+  // Audio analysis
+  getAnalyser: () => AnalyserNode | null;
+  getAudioContext: () => AudioContext | null;
 }
 
 export const useDrumStore = create<DrumStore>((set, get) => {
@@ -495,6 +499,15 @@ export const useDrumStore = create<DrumStore>((set, get) => {
         intervalId = null;
       }
       set({ isPlaying: false, currentStep: 0 });
+    },
+
+    getAnalyser: () => {
+      const { drumSynth } = get();
+      return drumSynth?.getAnalyser() ?? null;
+    },
+
+    getAudioContext: () => {
+      return get().ctx;
     },
   };
 });

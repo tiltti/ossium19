@@ -19,10 +19,10 @@ export interface EffectParams {
 }
 
 export const defaultEffectParams: EffectParams = {
-  reverbMix: 0.15,
-  reverbDecay: 1.5,
+  reverbMix: 0.35,   // Increased for more noticeable reverb
+  reverbDecay: 2.0,  // Slightly longer tail
   reverbPreDelay: 0.02,
-  reverbDamping: 0.5,
+  reverbDamping: 0.4,
   delayTime: 0.3,
   delayFeedback: 0.25,
   delayMix: 0.0,
@@ -152,6 +152,7 @@ export class EffectsChain {
   }
 
   private generateImpulseResponse(decay: number, damping: number): void {
+    console.log('[EffectsChain] Generating impulse response, decay:', decay, 'damping:', damping);
     const sampleRate = this.context.sampleRate;
     const length = Math.floor(sampleRate * Math.min(decay, 6)); // Limit max length
     const impulse = this.context.createBuffer(2, length, sampleRate);
@@ -195,7 +196,7 @@ export class EffectsChain {
         // Fade in to avoid click
         const fadeIn = Math.min(1, i / 200);
         // Add to existing reflections
-        channelData[i] += mixedNoise * envelope * fadeIn * 0.4;
+        channelData[i] += mixedNoise * envelope * fadeIn * 0.7; // Increased from 0.4
       }
     }
 
@@ -210,32 +211,36 @@ export class EffectsChain {
   }
 
   private applyParams(): void {
+    const now = this.context.currentTime;
+    const smoothTime = 0.05; // 50ms smoothing to prevent clicks
+
     // Reverb
     const reverbMix = this.params.reverbMix;
-    this.reverbDry.gain.value = 1 - reverbMix;
-    this.reverbWet.gain.value = reverbMix * 1.2; // Slight boost for wet signal
-    this.reverbPreDelay.delayTime.value = this.params.reverbPreDelay;
+    this.reverbDry.gain.setTargetAtTime(1 - reverbMix, now, smoothTime);
+    this.reverbWet.gain.setTargetAtTime(reverbMix * 2.0, now, smoothTime); // Increased from 1.2 for more presence
+    this.reverbPreDelay.delayTime.setTargetAtTime(this.params.reverbPreDelay, now, smoothTime);
 
     // Adjust low-pass based on damping (more damping = darker reverb)
     const maxFreq = 12000;
     const minFreq = 2000;
     const dampingFreq = maxFreq - (this.params.reverbDamping * (maxFreq - minFreq));
-    this.reverbLowPass.frequency.value = dampingFreq;
+    this.reverbLowPass.frequency.setTargetAtTime(dampingFreq, now, smoothTime);
 
-    // Delay
-    this.delayNode.delayTime.value = this.params.delayTime;
-    this.delayFeedback.gain.value = this.params.delayFeedback;
+    // Delay - use longer smoothing for delay time to prevent zipper noise
+    const delaySmooth = 0.1; // 100ms for delay time changes
+    this.delayNode.delayTime.setTargetAtTime(this.params.delayTime, now, delaySmooth);
+    this.delayFeedback.gain.setTargetAtTime(this.params.delayFeedback, now, smoothTime);
     const delayMix = this.params.delayMix;
-    this.delayDry.gain.value = 1 - delayMix;
-    this.delayWet.gain.value = delayMix;
+    this.delayDry.gain.setTargetAtTime(1 - delayMix, now, smoothTime);
+    this.delayWet.gain.setTargetAtTime(delayMix, now, smoothTime);
 
     // Chorus
-    this.chorusLFO.frequency.value = this.params.chorusRate;
-    this.chorusDepth.gain.value = this.params.chorusDepth * 0.002; // Scale to delay time range
-    this.chorusDelay.delayTime.value = 0.005; // Base delay
+    this.chorusLFO.frequency.setTargetAtTime(this.params.chorusRate, now, smoothTime);
+    this.chorusDepth.gain.setTargetAtTime(this.params.chorusDepth * 0.002, now, smoothTime);
+    // Base delay stays fixed
     const chorusMix = this.params.chorusMix;
-    this.chorusDry.gain.value = 1 - chorusMix * 0.5; // Keep some dry
-    this.chorusWet.gain.value = chorusMix;
+    this.chorusDry.gain.setTargetAtTime(1 - chorusMix * 0.5, now, smoothTime);
+    this.chorusWet.gain.setTargetAtTime(chorusMix, now, smoothTime);
   }
 
   setParam<K extends keyof EffectParams>(param: K, value: EffectParams[K]): void {
@@ -250,6 +255,7 @@ export class EffectsChain {
   }
 
   setParams(params: Partial<EffectParams>): void {
+    console.log('[EffectsChain] setParams:', params);
     Object.assign(this.params, params);
 
     if (params.reverbDecay !== undefined || params.reverbDamping !== undefined) {

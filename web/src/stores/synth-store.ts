@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { audioEngine, SynthParams, defaultParams, Waveform, FilterSlope, EffectParams, defaultEffectParams } from '../audio/engine';
 import { Preset, factoryPresets, getPresetsByCategory } from '../audio/presets';
+import { useFxStore } from './fx-store';
 
 interface SynthState {
   isInitialized: boolean;
@@ -61,6 +62,7 @@ interface SynthState {
   getAnalyser: () => AnalyserNode | null;
   getAudioContext: () => AudioContext | null;
   getEffectsOutput: () => AudioNode | null;
+  getActiveVoiceCount: () => number;
 }
 
 export const useSynthStore = create<SynthState>((set) => ({
@@ -75,6 +77,11 @@ export const useSynthStore = create<SynthState>((set) => ({
 
   init: async () => {
     await audioEngine.init();
+    // Subscribe to global FX store changes
+    useFxStore.getState().subscribeToChanges((effectParams) => {
+      console.log('[SynthStore] FX params updated:', effectParams);
+      audioEngine.setEffectParams(effectParams);
+    });
     set({ isInitialized: true });
   },
 
@@ -348,4 +355,5 @@ export const useSynthStore = create<SynthState>((set) => ({
   getAnalyser: () => audioEngine.getAnalyserNode(),
   getAudioContext: () => audioEngine.getAudioContext(),
   getEffectsOutput: () => audioEngine.getEffectsOutput(),
+  getActiveVoiceCount: () => audioEngine.getActiveVoiceCount(),
 }));

@@ -369,7 +369,6 @@ export function ArpeggiatorPanel({ onNoteOn, onNoteOff }: ArpeggiatorPanelProps)
     heldNotes,
     heldNotesWithVelocity,
     isActive,
-    bpm,
     savedPatterns,
     currentPatternSlot,
     setEnabled,
@@ -388,7 +387,6 @@ export function ArpeggiatorPanel({ onNoteOn, onNoteOff }: ArpeggiatorPanelProps)
     setShuffle,
     toggleLatch,
     setSync,
-    setBpm,
     setNoteCallbacks,
     loadPreset,
     savePattern,
@@ -739,70 +737,6 @@ export function ArpeggiatorPanel({ onNoteOn, onNoteOff }: ArpeggiatorPanelProps)
         {/* Octaves */}
         <div style={{ color: `${accentBlue}88`, fontFamily: 'monospace', fontSize: 11 }}>
           OCT:{params.octaves}
-        </div>
-
-        {/* BPM Control */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <button
-            onClick={() => setBpm(Math.max(20, bpm - 5))}
-            style={{
-              width: 18,
-              height: 18,
-              background: 'linear-gradient(180deg, #2a2e35 0%, #1a1e25 100%)',
-              border: '1px solid #3a4050',
-              borderRadius: 2,
-              color: '#888',
-              cursor: 'pointer',
-              fontSize: 12,
-              fontWeight: 'bold',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 0,
-            }}
-          >
-            -
-          </button>
-          <input
-            type="number"
-            value={bpm}
-            onChange={(e) => setBpm(Math.max(20, Math.min(300, parseInt(e.target.value) || 120)))}
-            style={{
-              width: 48,
-              padding: '3px 4px',
-              background: '#0a0c10',
-              border: '1px solid #3a4050',
-              borderRadius: 2,
-              color: accentBlue,
-              fontSize: 11,
-              fontFamily: 'monospace',
-              fontWeight: 'bold',
-              textAlign: 'center',
-            }}
-            min={20}
-            max={300}
-          />
-          <button
-            onClick={() => setBpm(Math.min(300, bpm + 5))}
-            style={{
-              width: 18,
-              height: 18,
-              background: 'linear-gradient(180deg, #2a2e35 0%, #1a1e25 100%)',
-              border: '1px solid #3a4050',
-              borderRadius: 2,
-              color: '#888',
-              cursor: 'pointer',
-              fontSize: 12,
-              fontWeight: 'bold',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 0,
-            }}
-          >
-            +
-          </button>
-          <span style={{ fontSize: 9, color: '#666' }}>BPM</span>
         </div>
 
         {/* Spacer */}

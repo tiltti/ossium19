@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { fm6opEngine, Fm6OpParams, defaultFm6OpParams } from '../audio/fm6op-engine';
 import { EffectParams, defaultEffectParams } from '../audio/effects';
+import { useFxStore } from './fx-store';
 
 // FM6Op Presets
 export interface Fm6OpPreset {
@@ -69,6 +70,7 @@ interface Fm6OpState {
 
   // Audio analysis
   getAnalyser: () => AnalyserNode | null;
+  getActiveVoiceCount: () => number;
 }
 
 export const useFm6OpStore = create<Fm6OpState>((set, get) => ({
@@ -83,6 +85,11 @@ export const useFm6OpStore = create<Fm6OpState>((set, get) => ({
 
   init: async () => {
     await fm6opEngine.init();
+    // Subscribe to global FX store changes
+    useFxStore.getState().subscribeToChanges((effectParams) => {
+      console.log('[FM6OpStore] FX params updated:', effectParams);
+      fm6opEngine.setEffectParams(effectParams);
+    });
     set({ isInitialized: true });
   },
 
@@ -310,4 +317,5 @@ export const useFm6OpStore = create<Fm6OpState>((set, get) => ({
   },
 
   getAnalyser: () => fm6opEngine.getAnalyserNode(),
+  getActiveVoiceCount: () => fm6opEngine.getActiveVoiceCount(),
 }));

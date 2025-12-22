@@ -11,6 +11,7 @@ interface KnobProps {
   logarithmic?: boolean;
   accentColor?: string;
   bipolar?: boolean; // For centered knobs (like detune)
+  hideValue?: boolean; // Hide the value display below the knob
 }
 
 // Helper to create SVG arc path
@@ -40,6 +41,7 @@ export function Knob({
   logarithmic = false,
   accentColor = '#64c8ff',
   bipolar = false,
+  hideValue = false,
 }: KnobProps) {
   const knobRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -215,15 +217,17 @@ export function Knob({
           </div>
         </div>
       </div>
-      <div
-        style={{
-          fontSize: 10,
-          color: '#888',
-          marginTop: 2,
-        }}
-      >
-        {displayValue}
-      </div>
+      {!hideValue && (
+        <div
+          style={{
+            fontSize: 10,
+            color: '#888',
+            marginTop: 2,
+          }}
+        >
+          {displayValue}
+        </div>
+      )}
       <div
         style={{
           fontSize: 11,

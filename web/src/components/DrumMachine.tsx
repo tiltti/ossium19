@@ -4,7 +4,6 @@ import { DrumSound, DRUM_LABELS } from '../audio/drum-synth';
 import { Knob } from './Knob';
 import { Theme } from '../theme';
 import { WoodPanel } from './WoodPanel';
-import { SevenSegmentDisplay } from './LcdScreen';
 
 const STEPS = 16;
 
@@ -392,7 +391,6 @@ export function DrumMachine({ accentColor = '#ff8c42', theme, onPanic }: DrumMac
     init,
     isPlaying,
     currentStep,
-    bpm,
     volume,
     swing,
     pattern,
@@ -403,7 +401,6 @@ export function DrumMachine({ accentColor = '#ff8c42', theme, onPanic }: DrumMac
     accentAmount,
     play,
     stop,
-    setBpm,
     setVolume,
     setSwing,
     toggleStep,
@@ -579,25 +576,6 @@ export function DrumMachine({ accentColor = '#ff8c42', theme, onPanic }: DrumMac
             onSelect={loadPattern}
             color={accentColor}
           />
-        </div>
-
-        {/* BPM - 7-segment display + knob control */}
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
-          <div>
-            <div style={{ fontSize: 9, color: '#ff4444', letterSpacing: 1, marginBottom: 4 }}>BPM</div>
-            <SevenSegmentDisplay value={bpm} digits={3} color="red" />
-          </div>
-          <div>
-            <Knob
-              value={bpm}
-              min={60}
-              max={200}
-              step={1}
-              label=""
-              onChange={setBpm}
-              size={40}
-            />
-          </div>
         </div>
 
         {/* Volume */}
