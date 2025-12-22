@@ -113,8 +113,6 @@ export class Fm6OpEngine {
 
     this.synth = new Ossian19Fm6Op(sampleRate, 8);
 
-    console.log('[Fm6OpEngine] 6-OP FM synth initialized');
-
     // Apply current params
     this.applyAllParams();
 
@@ -141,7 +139,6 @@ export class Fm6OpEngine {
     this.analyser.connect(this.context.destination);
 
     this.isInitialized = true;
-    console.log('[Fm6OpEngine] Audio graph connected');
   }
 
   private applyAllParams(): void {

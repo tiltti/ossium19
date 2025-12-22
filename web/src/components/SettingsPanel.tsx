@@ -147,7 +147,7 @@ function FileUploadZone() {
   );
 }
 
-function BankList() {
+function BankList({ onLoadPreset }: { onLoadPreset?: (bankId: string, index: number) => void }) {
   const { loadedBanks, removeBank } = useSettingsStore();
 
   if (loadedBanks.length === 0) {
@@ -161,13 +161,13 @@ function BankList() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {loadedBanks.map((bank) => (
-        <BankItem key={bank.id} bank={bank} onRemove={() => removeBank(bank.id)} />
+        <BankItem key={bank.id} bank={bank} onRemove={() => removeBank(bank.id)} onLoadPreset={onLoadPreset} />
       ))}
     </div>
   );
 }
 
-function BankItem({ bank, onRemove }: { bank: LoadedBank; onRemove: () => void }) {
+function BankItem({ bank, onRemove, onLoadPreset }: { bank: LoadedBank; onRemove: () => void; onLoadPreset?: (bankId: string, index: number) => void }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
@@ -229,15 +229,20 @@ function BankItem({ bank, onRemove }: { bank: LoadedBank; onRemove: () => void }
             overflowY: 'auto',
           }}
         >
-          <VoiceList bankId={bank.id} voices={bank.bank.voices} />
+          <VoiceList bankId={bank.id} voices={bank.bank.voices} onLoadPreset={onLoadPreset} />
         </div>
       )}
     </div>
   );
 }
 
-function VoiceList({ bankId, voices }: { bankId: string; voices: DX7Voice[] }) {
+function VoiceList({ bankId, voices, onLoadPreset }: { bankId: string; voices: DX7Voice[]; onLoadPreset?: (bankId: string, index: number) => void }) {
   const { selectPreset, selectedPreset } = useSettingsStore();
+
+  const handleClick = (index: number) => {
+    selectPreset(bankId, index);
+    onLoadPreset?.(bankId, index);
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -248,7 +253,7 @@ function VoiceList({ bankId, voices }: { bankId: string; voices: DX7Voice[] }) {
         return (
           <button
             key={index}
-            onClick={() => selectPreset(bankId, index)}
+            onClick={() => handleClick(index)}
             style={{
               background: isSelected ? ACCENT_COLOR : 'transparent',
               border: 'none',
@@ -275,8 +280,8 @@ function VoiceList({ bankId, voices }: { bankId: string; voices: DX7Voice[] }) {
   );
 }
 
-function PresetBrowser() {
-  const { loadedBanks, searchQuery, setSearchQuery, selectedPreset } = useSettingsStore();
+function PresetBrowser({ onLoadPreset }: { onLoadPreset?: (bankId: string, index: number) => void }) {
+  const { loadedBanks, searchQuery, setSearchQuery, selectedPreset, selectPreset } = useSettingsStore();
 
   const allVoices = loadedBanks.flatMap((bank) =>
     bank.bank.voices.map((voice, index) => ({
@@ -353,6 +358,10 @@ function PresetBrowser() {
               return (
                 <div
                   key={`${bankId}-${index}`}
+                  onClick={() => {
+                    selectPreset(bankId, index);
+                    onLoadPreset?.(bankId, index);
+                  }}
                   style={{
                     background: isSelected ? ACCENT_COLOR + '22' : 'transparent',
                     borderLeft: isSelected ? `3px solid ${ACCENT_COLOR}` : '3px solid transparent',
@@ -363,6 +372,14 @@ function PresetBrowser() {
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
+                    cursor: 'pointer',
+                    transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSelected) e.currentTarget.style.background = '#1a1a1a';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSelected) e.currentTarget.style.background = 'transparent';
                   }}
                 >
                   <div>
@@ -1340,10 +1357,29 @@ function ThemeSection({ currentTheme, onThemeChange }: { currentTheme: ThemeName
 interface SettingsPanelProps {
   currentTheme: ThemeName;
   onThemeChange: (theme: ThemeName) => void;
+  onPresetLoaded?: () => void; // Called when a SYX preset is loaded to FM
 }
 
-export function SettingsPanel({ currentTheme, onThemeChange }: SettingsPanelProps) {
-  const { clearAllBanks, clearAllMidiFiles } = useSettingsStore();
+export function SettingsPanel({ currentTheme, onThemeChange, onPresetLoaded }: SettingsPanelProps) {
+  const { clearAllBanks, clearAllMidiFiles, getVoiceAsFm6OpPreset } = useSettingsStore();
+  const { loadPreset: loadFm6OpPreset, init: initFm6Op, isInitialized: fm6OpInitialized } = useFm6OpStore();
+
+  // Handle loading a SYX preset into FM synth
+  const handleLoadPreset = async (bankId: string, voiceIndex: number) => {
+    const preset = getVoiceAsFm6OpPreset(bankId, voiceIndex);
+    if (!preset) return;
+
+    // Initialize FM synth if needed
+    if (!fm6OpInitialized) {
+      await initFm6Op();
+    }
+
+    // Load the preset
+    loadFm6OpPreset(preset);
+
+    // Notify parent (to switch to FM tab)
+    onPresetLoaded?.();
+  };
 
   return (
     <div
@@ -1421,7 +1457,7 @@ export function SettingsPanel({ currentTheme, onThemeChange }: SettingsPanelProp
           <div>
             <Section title="SYX File Manager">
               <FileUploadZone />
-              <BankList />
+              <BankList onLoadPreset={handleLoadPreset} />
             </Section>
 
             <MidiSection />
@@ -1431,7 +1467,7 @@ export function SettingsPanel({ currentTheme, onThemeChange }: SettingsPanelProp
           <div>
             <ThemeSection currentTheme={currentTheme} onThemeChange={onThemeChange} />
 
-            <PresetBrowser />
+            <PresetBrowser onLoadPreset={handleLoadPreset} />
 
             <SessionSection />
 

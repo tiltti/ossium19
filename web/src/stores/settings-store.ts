@@ -1,7 +1,9 @@
 import { create } from 'zustand';
-import { DX7Bank, parseDX7SyxFile } from '../audio/dx7-syx-parser';
+import { DX7Bank, DX7Voice, parseDX7SyxFile } from '../audio/dx7-syx-parser';
 import { MidiFile, parseMidiFileFromFile } from '../audio/midi-parser';
 import { midiPlayer } from '../audio/midi-player';
+import { convertDX7VoiceTo6Op, createPresetEffects, getCategoryFromName } from '../audio/dx7-6op-converter';
+import { Fm6OpPreset } from './fm6op-store';
 
 /**
  * Loaded SYX bank with metadata
@@ -59,6 +61,8 @@ interface SettingsState {
   loadSyxFile: (file: File) => Promise<void>;
   removeBank: (bankId: string) => void;
   selectPreset: (bankId: string, voiceIndex: number) => void;
+  getVoiceAsFm6OpPreset: (bankId: string, voiceIndex: number) => Fm6OpPreset | null;
+  getDX7Voice: (bankId: string, voiceIndex: number) => DX7Voice | null;
   setSearchQuery: (query: string) => void;
   clearAllBanks: () => void;
 
@@ -138,6 +142,33 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         voiceName: voice.name,
       },
     });
+  },
+
+  getVoiceAsFm6OpPreset: (bankId: string, voiceIndex: number): Fm6OpPreset | null => {
+    const bank = get().loadedBanks.find((b) => b.id === bankId);
+    if (!bank || voiceIndex < 0 || voiceIndex >= bank.bank.voices.length) {
+      return null;
+    }
+
+    const voice = bank.bank.voices[voiceIndex];
+    const params = convertDX7VoiceTo6Op(voice);
+    const effects = createPresetEffects(voice.name);
+    const category = getCategoryFromName(voice.name);
+
+    return {
+      name: voice.name.trim(),
+      category,
+      params,
+      effects,
+    };
+  },
+
+  getDX7Voice: (bankId: string, voiceIndex: number): DX7Voice | null => {
+    const bank = get().loadedBanks.find((b) => b.id === bankId);
+    if (!bank || voiceIndex < 0 || voiceIndex >= bank.bank.voices.length) {
+      return null;
+    }
+    return bank.bank.voices[voiceIndex];
   },
 
   setSearchQuery: (query: string) => {

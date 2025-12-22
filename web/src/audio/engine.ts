@@ -121,7 +121,6 @@ export class AudioEngine {
     this.analyser.connect(this.context.destination);
 
     this.isInitialized = true;
-    console.log('[AudioEngine] Initialized with WASM synth');
   }
 
   private applyAllParams(): void {

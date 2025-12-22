@@ -305,7 +305,6 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
       set({ isDirty: false, lastSaved: Date.now() });
-      console.log('[SessionStore] Session saved');
     } catch (e) {
       console.error('[SessionStore] Failed to save:', e);
     }
@@ -331,7 +330,6 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
           isDirty: false,
           lastSaved: session.timestamp,
         });
-        console.log('[SessionStore] Session loaded from', new Date(session.timestamp).toLocaleString());
         return true;
       }
     } catch (e) {
@@ -354,7 +352,6 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
     saveSlots(slots);
     set({ slots, currentSlot: slot });
-    console.log(`[SessionStore] Saved to slot ${slot + 1}`);
   },
 
   loadFromSlot: (slot: number) => {
@@ -371,7 +368,6 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       isDirty: false,
       currentSlot: slot,
     });
-    console.log(`[SessionStore] Loaded from slot ${slot + 1}`);
     return true;
   },
 

@@ -89,7 +89,6 @@ export const useFm6OpStore = create<Fm6OpState>((set, get) => ({
     await fm6opEngine.init();
     // Subscribe to global FX store changes
     useFxStore.getState().subscribeToChanges((effectParams) => {
-      console.log('[FM6OpStore] FX params updated:', effectParams);
       fm6opEngine.setEffectParams(effectParams);
     });
     set({ isInitialized: true });

@@ -389,7 +389,11 @@ export function App() {
           </>
         )}
         {appMode === 'settings' && (
-          <SettingsPanel currentTheme={colorTheme} onThemeChange={setColorTheme} />
+          <SettingsPanel
+            currentTheme={colorTheme}
+            onThemeChange={setColorTheme}
+            onPresetLoaded={() => setAppMode('fm')}
+          />
         )}
       </main>
 

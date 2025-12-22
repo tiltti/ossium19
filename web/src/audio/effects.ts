@@ -152,7 +152,6 @@ export class EffectsChain {
   }
 
   private generateImpulseResponse(decay: number, damping: number): void {
-    console.log('[EffectsChain] Generating impulse response, decay:', decay, 'damping:', damping);
     const sampleRate = this.context.sampleRate;
     const length = Math.floor(sampleRate * Math.min(decay, 6)); // Limit max length
     const impulse = this.context.createBuffer(2, length, sampleRate);
@@ -255,7 +254,6 @@ export class EffectsChain {
   }
 
   setParams(params: Partial<EffectParams>): void {
-    console.log('[EffectsChain] setParams:', params);
     Object.assign(this.params, params);
 
     if (params.reverbDecay !== undefined || params.reverbDamping !== undefined) {

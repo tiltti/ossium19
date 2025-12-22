@@ -79,7 +79,6 @@ export const useSynthStore = create<SynthState>((set) => ({
     await audioEngine.init();
     // Subscribe to global FX store changes
     useFxStore.getState().subscribeToChanges((effectParams) => {
-      console.log('[SynthStore] FX params updated:', effectParams);
       audioEngine.setEffectParams(effectParams);
     });
     set({ isInitialized: true });
