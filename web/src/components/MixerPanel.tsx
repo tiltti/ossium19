@@ -880,12 +880,80 @@ export function MixerPanel({ theme }: MixerPanelProps) {
           <h2 style={{ margin: 0, fontSize: 16, color: theme.primary, letterSpacing: 2 }}>
             MIXER
           </h2>
-          <div style={{ fontSize: 10, color: theme.textMuted }}>
-            Master: {Math.round(masterVolume * 100)}%
+        </div>
+
+        {/* Spectrum Analyzer with VU Meters on sides */}
+        <div
+          style={{
+            display: 'flex',
+            gap: 12,
+            marginBottom: 20,
+            justifyContent: 'center',
+            alignItems: 'stretch',
+          }}
+        >
+          {/* VU Meter Left */}
+          <div
+            style={{
+              background: '#050508',
+              borderRadius: 8,
+              padding: 8,
+              border: `1px solid ${theme.border}`,
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <VUMeter
+              analysers={[synthAnalyser, fm6Analyser, drumAnalyser]}
+              width={280}
+              height={200}
+              label="MASTER L"
+            />
+          </div>
+
+          {/* Spectrum Analyzer - Narrower */}
+          <div
+            style={{
+              background: '#050508',
+              borderRadius: 8,
+              padding: 12,
+              border: `1px solid ${theme.border}`,
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <div style={{ fontSize: 9, color: theme.textMuted, marginBottom: 4, letterSpacing: 1 }}>
+              SPECTRUM ANALYZER
+            </div>
+            <SpectrumAnalyzer
+              analysers={[synthAnalyser, fm6Analyser, drumAnalyser]}
+              width={500}
+              height={200}
+              primaryColor={theme.primary}
+            />
+          </div>
+
+          {/* VU Meter Right */}
+          <div
+            style={{
+              background: '#050508',
+              borderRadius: 8,
+              padding: 8,
+              border: `1px solid ${theme.border}`,
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <VUMeter
+              analysers={[synthAnalyser, fm6Analyser, drumAnalyser]}
+              width={280}
+              height={200}
+              label="MASTER R"
+            />
           </div>
         </div>
 
-        {/* Spectrum Analyzer - Centered */}
+        {/* Lissajous Stereo Phase - centered */}
         <div
           style={{
             display: 'flex',
@@ -897,84 +965,21 @@ export function MixerPanel({ theme }: MixerPanelProps) {
             style={{
               background: '#050508',
               borderRadius: 8,
-              padding: 12,
+              padding: 8,
               border: `1px solid ${theme.border}`,
             }}
           >
-            <div style={{ fontSize: 9, color: theme.textMuted, marginBottom: 4, letterSpacing: 1 }}>
-              SPECTRUM ANALYZER
+            <div style={{ fontSize: 9, color: theme.textMuted, marginBottom: 4, letterSpacing: 1, textAlign: 'center' }}>
+              STEREO PHASE
             </div>
-            <SpectrumAnalyzer
-              analysers={[synthAnalyser, fm6Analyser, drumAnalyser]}
-              width={900}
-              height={180}
-              primaryColor={theme.primary}
+            <LissajousDisplay
+              analyserL={stereoAnalysers.left}
+              analyserR={stereoAnalysers.right}
+              size={100}
+              color={theme.primary}
             />
           </div>
         </div>
-
-      {/* VU Meters + Lissajous row */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 16,
-          marginBottom: 20,
-          justifyContent: 'center',
-          alignItems: 'flex-start',
-        }}
-      >
-        <div
-          style={{
-            background: '#050508',
-            borderRadius: 8,
-            padding: 8,
-            border: `1px solid ${theme.border}`,
-          }}
-        >
-          <VUMeter
-            analysers={[synthAnalyser, fm6Analyser, drumAnalyser]}
-            width={350}
-            height={200}
-            label="MASTER L"
-          />
-        </div>
-
-        {/* Lissajous Stereo Phase */}
-        <div
-          style={{
-            background: '#050508',
-            borderRadius: 8,
-            padding: 8,
-            border: `1px solid ${theme.border}`,
-          }}
-        >
-          <div style={{ fontSize: 9, color: theme.textMuted, marginBottom: 4, letterSpacing: 1, textAlign: 'center' }}>
-            STEREO PHASE
-          </div>
-          <LissajousDisplay
-            analyserL={stereoAnalysers.left}
-            analyserR={stereoAnalysers.right}
-            size={126}
-            color={theme.primary}
-          />
-        </div>
-
-        <div
-          style={{
-            background: '#050508',
-            borderRadius: 8,
-            padding: 8,
-            border: `1px solid ${theme.border}`,
-          }}
-        >
-          <VUMeter
-            analysers={[synthAnalyser, fm6Analyser, drumAnalyser]}
-            width={350}
-            height={200}
-            label="MASTER R"
-          />
-        </div>
-      </div>
 
       {/* Channel strips */}
       <div

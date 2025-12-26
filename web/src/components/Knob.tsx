@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import { useUISettings } from '../contexts/UISettingsContext';
 
 interface KnobProps {
   value: number;
@@ -45,6 +46,10 @@ export function Knob({
 }: KnobProps) {
   const knobRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+
+  // Get knob style from global settings
+  const { knobStyle } = useUISettings();
+  const glowMode = knobStyle === 'glow';
   const startY = useRef(0);
   const startValue = useRef(0);
 
@@ -104,10 +109,12 @@ export function Knob({
   const normalized = toNormalized(value);
   const rotation = -135 + normalized * 270;
 
-  // Arc calculations
-  const svgSize = size + 12;
+  // Arc calculations - slightly smaller in glow mode to leave room for glow
+  const effectiveSize = glowMode ? size - 6 : size;
+  const glowPadding = glowMode ? 16 : 6; // Extra padding for glow to extend
+  const svgSize = effectiveSize + glowPadding * 2;
   const center = svgSize / 2;
-  const arcRadius = size / 2 + 3;
+  const arcRadius = effectiveSize / 2 + 3;
   const trackWidth = 3;
 
   // Start and end angles for the track (matching knob rotation range)
@@ -140,14 +147,17 @@ export function Knob({
   // Don't draw arc if value is at minimum (or center for bipolar)
   const showValueArc = bipolar ? Math.abs(normalized - 0.5) > 0.01 : normalized > 0.01;
 
+  // Show glow only when dragging in glow mode
+  const showGlow = glowMode && isDragging;
+
   return (
     <div style={{ width: size + 20, textAlign: 'center', flexShrink: 0 }}>
-      <div style={{ position: 'relative', width: svgSize, height: svgSize, margin: '0 auto' }}>
+      <div style={{ position: 'relative', width: svgSize, height: svgSize, margin: '0 auto', overflow: 'visible' }}>
         {/* SVG for arc indicator */}
         <svg
           width={svgSize}
           height={svgSize}
-          style={{ position: 'absolute', top: 0, left: 0 }}
+          style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible' }}
         >
           {/* Background track */}
           <path
@@ -159,16 +169,43 @@ export function Knob({
           />
           {/* Value arc */}
           {showValueArc && (
-            <path
-              d={describeArc(center, center, arcRadius, valueStartAngle, valueEndAngle)}
-              fill="none"
-              stroke={accentColor}
-              strokeWidth={trackWidth}
-              strokeLinecap="round"
-              style={{
-                filter: `drop-shadow(0 0 4px ${accentColor}66)`,
-              }}
-            />
+            <>
+              {/* Glow layers - only when dragging in glow mode */}
+              {showGlow && (
+                <>
+                  {/* Outer glow */}
+                  <path
+                    d={describeArc(center, center, arcRadius, valueStartAngle, valueEndAngle)}
+                    fill="none"
+                    stroke={accentColor}
+                    strokeWidth={trackWidth + 10}
+                    strokeLinecap="round"
+                    style={{ opacity: 0.1 }}
+                  />
+                  {/* Mid glow */}
+                  <path
+                    d={describeArc(center, center, arcRadius, valueStartAngle, valueEndAngle)}
+                    fill="none"
+                    stroke={accentColor}
+                    strokeWidth={trackWidth + 5}
+                    strokeLinecap="round"
+                    style={{ opacity: 0.2 }}
+                  />
+                </>
+              )}
+              {/* Main arc */}
+              <path
+                d={describeArc(center, center, arcRadius, valueStartAngle, valueEndAngle)}
+                fill="none"
+                stroke={accentColor}
+                strokeWidth={trackWidth}
+                strokeLinecap="round"
+                style={{
+                  filter: showGlow ? `drop-shadow(0 0 4px ${accentColor})` : 'none',
+                  transition: 'filter 0.15s ease-out',
+                }}
+              />
+            </>
           )}
         </svg>
 
@@ -176,8 +213,8 @@ export function Knob({
         <div
           ref={knobRef}
           style={{
-            width: size,
-            height: size,
+            width: effectiveSize,
+            height: effectiveSize,
             borderRadius: '50%',
             background: 'linear-gradient(145deg, #3a3a3a, #2a2a2a)',
             boxShadow: isDragging
@@ -185,9 +222,10 @@ export function Knob({
               : 'inset 2px 2px 4px rgba(0,0,0,0.5), 2px 2px 8px rgba(0,0,0,0.3)',
             cursor: 'ns-resize',
             position: 'absolute',
-            top: 6,
-            left: 6,
+            top: glowPadding,
+            left: glowPadding,
             userSelect: 'none',
+            transition: 'box-shadow 0.15s ease-out',
           }}
           onMouseDown={handleMouseDown}
         >

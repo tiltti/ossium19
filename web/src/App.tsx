@@ -9,6 +9,7 @@ import { Fm6OpPanel } from './components/Fm6OpPanel';
 import { SongPlayer } from './components/SongPlayer';
 import { DrumMachine } from './components/DrumMachine';
 import { SettingsPanel } from './components/SettingsPanel';
+import { UISettingsProvider } from './contexts/UISettingsContext';
 import { ArpeggiatorPanel } from './components/ArpeggiatorPanel';
 import { MixerPanel } from './components/MixerPanel';
 import { PedalboardPanel } from './components/PedalboardPanel';
@@ -167,6 +168,7 @@ export function App() {
   ];
 
   return (
+    <UISettingsProvider>
     <div
       style={{
         minHeight: '100vh',
@@ -425,5 +427,6 @@ export function App() {
         v{VERSION}
       </footer>
     </div>
+    </UISettingsProvider>
   );
 }

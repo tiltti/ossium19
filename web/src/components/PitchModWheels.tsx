@@ -1,6 +1,8 @@
 // Pitch Bend and Modulation Wheel components - Top-down view rotating wheel design
 // Inspired by classic Moog/Roland style wheels viewed from above
 import { useCallback, useRef, useState } from 'react';
+import { useUISettings } from '../contexts/UISettingsContext';
+import { ModWheel3D, PitchWheel3D } from './ModWheel3D';
 
 interface WheelProps {
   value: number; // -1 to 1 for pitch, 0 to 1 for mod
@@ -398,9 +400,48 @@ export function PitchModWheels({
   modWheel,
   onPitchBendChange,
   onModWheelChange,
-  color: _color = '#64c8ff',
+  color = '#64c8ff',
   modDestination,
 }: PitchModWheelsProps) {
+  // Get wheel style from global settings
+  const { wheelStyle } = useUISettings();
+
+  // Render 3D wheels if selected
+  if (wheelStyle === '3d') {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          gap: 16,
+          padding: '10px 12px',
+          background: 'linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 100%)',
+          borderRadius: 6,
+          border: '1px solid #444',
+          boxShadow: `
+            inset 0 1px 0 rgba(255,255,255,0.1),
+            0 2px 8px rgba(0,0,0,0.4)
+          `,
+        }}
+      >
+        <PitchWheel3D
+          value={pitchBend}
+          onChange={onPitchBendChange}
+          label="BEND"
+          height={80}
+          accentColor={color}
+        />
+        <ModWheel3D
+          value={modWheel}
+          onChange={onModWheelChange}
+          label={modDestination ? `MOD→${modDestination}` : 'MOD'}
+          height={80}
+          accentColor={color}
+        />
+      </div>
+    );
+  }
+
+  // Default: classic wheels
   return (
     <div
       style={{

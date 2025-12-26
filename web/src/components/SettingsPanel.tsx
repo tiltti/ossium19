@@ -11,8 +11,11 @@ import { factoryPresets, Preset } from '../audio/presets';
 import { Fm6OpPreset } from '../stores/fm6op-store';
 import { VERSION } from '../version';
 import { ThemeName, THEMES } from '../theme';
+import { useUISettings, KnobStyle, WheelStyle } from '../contexts/UISettingsContext';
 
 const ACCENT_COLOR = '#ff8c42';
+
+export type { KnobStyle, WheelStyle };
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -1302,6 +1305,108 @@ function SessionSection() {
   );
 }
 
+// UI Settings section
+function UISettingsSection() {
+  const { knobStyle, wheelStyle, setKnobStyle, setWheelStyle } = useUISettings();
+  return (
+    <Section title="UI Settings">
+      {/* Knob Style */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ color: '#888', fontSize: 10, marginBottom: 8, textTransform: 'uppercase' }}>
+          Knob Style
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={() => setKnobStyle('classic')}
+            style={{
+              flex: 1,
+              padding: '10px 12px',
+              background: knobStyle === 'classic' ? '#1a2020' : '#0a0a0a',
+              border: knobStyle === 'classic' ? `2px solid ${ACCENT_COLOR}` : '1px solid #333',
+              borderRadius: 6,
+              cursor: 'pointer',
+              textAlign: 'center',
+            }}
+          >
+            <div style={{ color: knobStyle === 'classic' ? ACCENT_COLOR : '#888', fontSize: 12, fontWeight: 'bold' }}>
+              Classic
+            </div>
+            <div style={{ color: '#666', fontSize: 9, marginTop: 4 }}>
+              Standard arc indicator
+            </div>
+          </button>
+          <button
+            onClick={() => setKnobStyle('glow')}
+            style={{
+              flex: 1,
+              padding: '10px 12px',
+              background: knobStyle === 'glow' ? '#1a2020' : '#0a0a0a',
+              border: knobStyle === 'glow' ? `2px solid ${ACCENT_COLOR}` : '1px solid #333',
+              borderRadius: 6,
+              cursor: 'pointer',
+              textAlign: 'center',
+            }}
+          >
+            <div style={{ color: knobStyle === 'glow' ? ACCENT_COLOR : '#888', fontSize: 12, fontWeight: 'bold' }}>
+              Glow
+            </div>
+            <div style={{ color: '#666', fontSize: 9, marginTop: 4 }}>
+              Glow effect when adjusting
+            </div>
+          </button>
+        </div>
+      </div>
+
+      {/* Wheel Style */}
+      <div>
+        <div style={{ color: '#888', fontSize: 10, marginBottom: 8, textTransform: 'uppercase' }}>
+          Pitch/Mod Wheel Style
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={() => setWheelStyle('classic')}
+            style={{
+              flex: 1,
+              padding: '10px 12px',
+              background: wheelStyle === 'classic' ? '#1a2020' : '#0a0a0a',
+              border: wheelStyle === 'classic' ? `2px solid ${ACCENT_COLOR}` : '1px solid #333',
+              borderRadius: 6,
+              cursor: 'pointer',
+              textAlign: 'center',
+            }}
+          >
+            <div style={{ color: wheelStyle === 'classic' ? ACCENT_COLOR : '#888', fontSize: 12, fontWeight: 'bold' }}>
+              Classic
+            </div>
+            <div style={{ color: '#666', fontSize: 9, marginTop: 4 }}>
+              Top-down view with grooves
+            </div>
+          </button>
+          <button
+            onClick={() => setWheelStyle('3d')}
+            style={{
+              flex: 1,
+              padding: '10px 12px',
+              background: wheelStyle === '3d' ? '#1a2020' : '#0a0a0a',
+              border: wheelStyle === '3d' ? `2px solid ${ACCENT_COLOR}` : '1px solid #333',
+              borderRadius: 6,
+              cursor: 'pointer',
+              textAlign: 'center',
+            }}
+          >
+            <div style={{ color: wheelStyle === '3d' ? ACCENT_COLOR : '#888', fontSize: 12, fontWeight: 'bold' }}>
+              3D
+            </div>
+            <div style={{ color: '#666', fontSize: 9, marginTop: 4 }}>
+              3D cylindrical wheel
+            </div>
+          </button>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
 // Theme selector section
 function ThemeSection({ currentTheme, onThemeChange }: { currentTheme: ThemeName; onThemeChange: (t: ThemeName) => void }) {
   const themeOptions: { id: ThemeName; name: string; description: string }[] = [
@@ -1469,6 +1574,8 @@ export function SettingsPanel({ currentTheme, onThemeChange, onPresetLoaded }: S
           {/* Right column */}
           <div>
             <ThemeSection currentTheme={currentTheme} onThemeChange={onThemeChange} />
+
+            <UISettingsSection />
 
             <PresetBrowser onLoadPreset={handleLoadPreset} />
 
