@@ -208,7 +208,7 @@ After build:
 
 | Section | Parameter | Range |
 |---------|-----------|-------|
-| **Global** | Algorithm | 1-32 (DX7 algorithms) |
+| **Global** | Algorithm | 1-32 (classic FM algorithms) |
 | **OP1-6** | Ratio | 0.125-16.0 |
 | | Level | 0-100% |
 | | Detune | -100 to +100 cents |

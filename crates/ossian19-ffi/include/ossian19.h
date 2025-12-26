@@ -76,7 +76,7 @@ void fm_synth_note_off(FmSynthHandle handle, uint8_t note);
 void fm_synth_all_notes_off(FmSynthHandle handle);
 void fm_synth_process(FmSynthHandle handle, float* left, float* right, size_t num_samples);
 
-/* Algorithm (0-31 for DX7 algorithms 1-32) */
+/* Algorithm (0-31, 32 classic FM algorithms) */
 void fm_synth_set_algorithm(FmSynthHandle handle, int32_t value);
 
 /* Per-operator parameters (op = 0-5) */
