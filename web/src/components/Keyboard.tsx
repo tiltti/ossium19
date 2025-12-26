@@ -120,7 +120,7 @@ export function Keyboard({
   const noteOn = externalNoteOn ?? ((note: number, velocity: number) => store.noteOn(note, velocity));
   const noteOff = externalNoteOff ?? store.noteOff;
 
-  const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
+  const pressedKeysRef = useRef<Set<string>>(new Set());
   const [baseOctave, setBaseOctave] = useState(3);
   const [isMouseDown, setIsMouseDown] = useState(false);
   const mouseNotesRef = useRef<Set<number>>(new Set());
@@ -213,32 +213,33 @@ export function Keyboard({
     };
   }, [isMouseDown, noteOff]);
 
-  // Keyboard input
+  // Keyboard input - use ref for pressedKeys to avoid effect re-running on every keypress
   useEffect(() => {
     const handleKeyDown = async (e: KeyboardEvent) => {
       if (e.repeat) return;
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
 
-      if (!isInitialized) {
-        await init();
-      }
-
       const key = e.key.toLowerCase();
-      if (keyMap[key] && !pressedKeys.has(key)) {
-        setPressedKeys((prev) => new Set(prev).add(key));
-        noteOn(keyMap[key], 100);
+      const midiNote = keyMap[key];
+
+      if (midiNote !== undefined && !pressedKeysRef.current.has(key)) {
+        pressedKeysRef.current.add(key);
+
+        if (!isInitialized) {
+          await init();
+        }
+
+        noteOn(midiNote, 100);
       }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
-      if (keyMap[key]) {
-        setPressedKeys((prev) => {
-          const next = new Set(prev);
-          next.delete(key);
-          return next;
-        });
-        noteOff(keyMap[key]);
+      const midiNote = keyMap[key];
+
+      if (midiNote !== undefined && pressedKeysRef.current.has(key)) {
+        pressedKeysRef.current.delete(key);
+        noteOff(midiNote);
       }
     };
 
@@ -249,7 +250,7 @@ export function Keyboard({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [isInitialized, init, noteOn, noteOff, pressedKeys, keyMap]);
+  }, [isInitialized, init, noteOn, noteOff, keyMap]);
 
   // Visual keyboard range - 5 octaves
   const displayOctaves = [1, 2, 3, 4, 5];
