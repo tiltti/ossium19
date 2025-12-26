@@ -1,0 +1,20 @@
+[package]
+name = "ossian19-sub"
+version.workspace = true
+edition = "2021"
+description = "OSSIAN-19 Sub - Subtractive Synthesizer VST3/CLAP Plugin"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ossian19-core = { path = "../ossian19-core" }
+
+nih_plug = { git = "https://github.com/robbert-vdh/nih-plug.git", features = ["assert_process_allocs"] }
+nih_plug_egui = { git = "https://github.com/robbert-vdh/nih-plug.git" }
+
+# For thread-safe parameter access
+atomic_float = "1"
+
+[features]
+default = []

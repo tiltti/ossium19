@@ -25,3 +25,10 @@ Cargo.lock
 
 # Local implementation plans
 IMPLEMENTATION_PLAN.md
+
+# JUCE framework (cloned separately)
+juce/
+
+# Build artifacts
+juce-plugins/build/
+target/

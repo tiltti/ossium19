@@ -304,6 +304,78 @@ OSSIAN-19 aims to recreate the experience of using professional hardware synthes
 
 - **The Drum Machines**: Each kit is synthesized from scratch - no samples! The TR-808's deep kick uses a sine wave with pitch envelope, the 909's punchy character comes from added waveshaper distortion, and the LinnDrum's crisp transients use additional click oscillators.
 
+## VST3/CLAP Plugins
+
+OSSIAN-19 is also available as native VST3 and CLAP plugins for DAWs like Reaper, Bitwig, etc.
+
+### OSSIAN-19 Sub (Subtractive Synthesizer)
+
+Full-featured subtractive synthesizer with:
+
+**Oscillators:**
+- OSC1: Waveform (Saw/Square/Triangle/Sine), Level
+- OSC2: Waveform, Level, Detune
+
+**Sub Oscillator:**
+- Waveform (Sine/Square), Level, Octave (-1/-2)
+
+**Noise:** Level
+
+**PWM:** Pulse Width, Depth, Rate
+
+**FM:** Amount, Ratio (oscillator FM)
+
+**Filter:**
+- Cutoff, Resonance
+- Slope (6/12/24 dB/oct)
+- HPF Cutoff
+- Envelope Amount
+
+**Envelopes:**
+- Amp ADSR (Attack, Decay, Sustain, Release)
+- Filter ADSR
+
+**Master:** Volume
+
+### OSSIAN-19 FM (6-Operator FM Synthesizer)
+
+DX7-style 6-operator FM synthesizer with:
+
+**Algorithm:** 32 DX7 algorithms
+
+**Per Operator (OP1-OP6):**
+- Ratio, Level, Detune
+- Feedback
+- Velocity Sensitivity
+- ADSR Envelope (Attack, Decay, Sustain, Release)
+
+**Filter:** Enable, Cutoff, Resonance
+
+**Vibrato:** Depth, Rate
+
+**Master:** Volume
+
+### Building Plugins
+
+```bash
+# Build VST3 and CLAP bundles
+cargo xtask bundle ossian19-sub --release
+cargo xtask bundle ossian19-fm --release
+
+# Install on macOS
+cp -r target/bundled/*.vst3 ~/Library/Audio/Plug-Ins/VST3/
+cp -r target/bundled/*.clap ~/Library/Audio/Plug-Ins/CLAP/
+xattr -cr ~/Library/Audio/Plug-Ins/VST3/ossian19-*
+xattr -cr ~/Library/Audio/Plug-Ins/CLAP/ossian19-*
+```
+
+### Plugin Requirements
+
+- **Framework:** nih-plug (pure Rust)
+- **Formats:** VST3, CLAP
+- **GUI:** egui with scrollable interface
+- **Note:** Logic Pro requires AU format (not supported yet - see JUCE roadmap)
+
 ## Roadmap
 
 - [x] 6-operator FM with 32 DX7 algorithms
@@ -317,6 +389,8 @@ OSSIAN-19 aims to recreate the experience of using professional hardware synthes
 - [x] Goniometer and pitch tuner displays
 - [x] Drum kit variations (TR-808, TR-909, TR-707, CR-78, LinnDrum)
 - [x] MIDI input with velocity, pitch bend, and mod wheel
+- [x] VST3/CLAP plugins (nih-plug)
+- [ ] JUCE version (AU/AAX support for Logic Pro)
 - [ ] Patch export/import
 - [ ] AudioWorklet migration
 

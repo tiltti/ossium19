@@ -1,0 +1,14 @@
+[package]
+name = "ossian19-ffi"
+version.workspace = true
+edition = "2021"
+description = "C FFI bindings for OSSIAN-19 synthesizer engines"
+
+[lib]
+crate-type = ["staticlib", "cdylib"]
+
+[dependencies]
+ossian19-core = { path = "../ossian19-core" }
+
+[build-dependencies]
+cbindgen = "0.26"
