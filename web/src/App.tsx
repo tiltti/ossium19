@@ -3,6 +3,7 @@ import { useSynthStore } from './stores/synth-store';
 import { useFm6OpStore } from './stores/fm6op-store';
 import { useDrumStore } from './stores/drum-store';
 import { useArpStore } from './stores/arp-store';
+import { useMidiStore } from './stores/midi-store';
 import { SynthPanel } from './components/SynthPanel';
 import { Fm6OpPanel } from './components/Fm6OpPanel';
 import { SongPlayer } from './components/SongPlayer';
@@ -12,6 +13,7 @@ import { ArpeggiatorPanel } from './components/ArpeggiatorPanel';
 import { MixerPanel } from './components/MixerPanel';
 import { PedalboardPanel } from './components/PedalboardPanel';
 import { SpaceFxPanel } from './components/SpaceFxPanel';
+import { MidiIndicator } from './components/MidiSelector';
 import { Knob } from './components/Knob';
 import { SevenSegmentDisplay } from './components/LcdScreen';
 import { GlobalVisualizer } from './components/GlobalVisualizer';
@@ -36,6 +38,7 @@ export function App() {
   const { isInitialized: fm6IsInit, init: fm6Init, noteOn: fm6NoteOn, noteOff: fm6NoteOff, panic: fm6Panic } = useFm6OpStore();
   const { isPlaying: drumIsPlaying, panic: drumPanic, setBpm: setDrumBpm, getAudioContext: getDrumAudioContext, isInitialized: drumIsInit } = useDrumStore();
   const { setBpm: setArpBpm } = useArpStore();
+  const { setTarget: setMidiTarget } = useMidiStore();
 
   // Set global BPM - updates drums and arpeggiator
   const setGlobalBpm = useCallback((bpm: number) => {
@@ -64,12 +67,20 @@ export function App() {
   const isSynthMode = appMode === 'synth' || appMode === 'fm';
   const isInitialized = appMode === 'synth' ? subIsInit : appMode === 'fm' ? fm6IsInit : true;
 
-  // Track last synth mode for ARP button
+  // Track last synth mode for ARP button and sync MIDI target
   useEffect(() => {
     if (isSynthMode) {
       setLastSynthMode(appMode as 'synth' | 'fm');
     }
-  }, [appMode, isSynthMode]);
+    // Sync MIDI target with app mode
+    if (appMode === 'synth') {
+      setMidiTarget('synth');
+    } else if (appMode === 'fm') {
+      setMidiTarget('fm6op');
+    } else if (appMode === 'drums') {
+      setMidiTarget('drums');
+    }
+  }, [appMode, isSynthMode, setMidiTarget]);
 
   // Handle ARP button click
   const handleArpClick = () => {
@@ -207,6 +218,9 @@ export function App() {
             <span style={{ color: theme.textMuted, fontSize: 9 }}>
               {!isInitialized && isSynthMode && '(Click to start)'}
             </span>
+
+            {/* MIDI Indicator */}
+            <MidiIndicator />
 
             {/* Tabs */}
             <div style={{ display: 'flex', gap: 3, marginLeft: 'auto' }}>

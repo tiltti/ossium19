@@ -2,6 +2,32 @@ import { create } from 'zustand';
 import { DrumSynth, DrumSound, DrumKit, DRUM_SOUNDS, DRUM_KITS } from '../audio/drum-synth';
 import { SpaceReverb, SpaceReverbParams } from '../audio/space-reverb';
 import { useSpaceFxStore } from './space-fx-store';
+import { useMidiStore } from './midi-store';
+
+// MIDI note to drum sound mapping (General MIDI drum map)
+const MIDI_DRUM_MAP: Record<number, DrumSound> = {
+  36: 'kick',      // Bass Drum 1
+  35: 'kick',      // Acoustic Bass Drum
+  38: 'snare',     // Acoustic Snare
+  40: 'snare',     // Electric Snare
+  39: 'clap',      // Hand Clap
+  42: 'hihat-closed', // Closed Hi-Hat
+  44: 'hihat-closed', // Pedal Hi-Hat
+  46: 'hihat-open',   // Open Hi-Hat
+  41: 'tom-low',   // Low Floor Tom
+  43: 'tom-low',   // High Floor Tom
+  45: 'tom-mid',   // Low Tom
+  47: 'tom-mid',   // Low-Mid Tom
+  48: 'tom-hi',    // Hi-Mid Tom
+  50: 'tom-hi',    // High Tom
+  37: 'rimshot',   // Side Stick
+  56: 'cowbell',   // Cowbell
+  49: 'cymbal',    // Crash Cymbal 1
+  51: 'cymbal',    // Ride Cymbal 1
+  52: 'cymbal',    // Chinese Cymbal
+  55: 'cymbal',    // Splash Cymbal
+  57: 'cymbal',    // Crash Cymbal 2
+};
 
 const STEPS = 16;
 
@@ -379,6 +405,19 @@ export const useDrumStore = create<DrumStore>((set, get) => {
       // Subscribe to OSSIAN SPACE store changes
       useSpaceFxStore.getState().subscribeToChanges((spaceParams) => {
         spaceReverb.setParams(spaceParams);
+      });
+
+      // Register MIDI callbacks for drums
+      useMidiStore.getState().registerCallbacks('drums', {
+        noteOn: (note, velocity) => {
+          const sound = MIDI_DRUM_MAP[note];
+          if (sound) {
+            drumSynth.trigger(sound, velocity / 127);
+          }
+        },
+        noteOff: () => {}, // Drums don't need note off
+        pitchBend: () => {}, // Drums don't use pitch bend
+        modWheel: () => {}, // Drums don't use mod wheel
       });
 
       set({

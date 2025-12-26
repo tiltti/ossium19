@@ -3,6 +3,7 @@ import { fm6opEngine, Fm6OpParams, defaultFm6OpParams } from '../audio/fm6op-eng
 import { EffectParams, defaultEffectParams } from '../audio/effects';
 import { useFxStore } from './fx-store';
 import { useSpaceFxStore } from './space-fx-store';
+import { useMidiStore } from './midi-store';
 
 // FM6Op Presets
 export interface Fm6OpPreset {
@@ -96,6 +97,13 @@ export const useFm6OpStore = create<Fm6OpState>((set, get) => ({
     // Subscribe to OSSIAN SPACE reverb store changes
     useSpaceFxStore.getState().subscribeToChanges((spaceParams) => {
       fm6opEngine.setSpaceReverbParams(spaceParams);
+    });
+    // Register MIDI callbacks
+    useMidiStore.getState().registerCallbacks('fm6op', {
+      noteOn: (note, velocity) => get().noteOn(note, velocity),
+      noteOff: (note) => get().noteOff(note),
+      pitchBend: (value) => get().setPitchBend(value),
+      modWheel: (value) => get().setModWheel(value),
     });
     set({ isInitialized: true });
   },

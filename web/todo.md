@@ -23,8 +23,19 @@ Convert OSSIAN-19 to native AU plugin using nih-plug:
 - Files to remove: fm4op-engine.ts, fm4op-store.ts, fm4op-presets.ts, fm4op-types.ts, Fm4OpPanel.tsx
 - **Fix:** Delete all fm4op files if confirmed unused
 
+## Needs Testing
+
+- [ ] **MIDI Input** - Web MIDI API integration (velocity, pitch bend, mod wheel, GM drums)
+  - Test with hardware MIDI controller
+  - Verify note on/off with velocity
+  - Test pitch bend spring-return
+  - Test mod wheel routing (filter/vibrato)
+  - Test drum GM mapping
+
 ## Completed
 
+- [x] MIDI input implementation (untested with hardware)
+- [x] Mod wheel / pitch bender UI redesign with LED indicators
 - [x] fm4op debug logging cleaned up
 - [x] Mixer pan controls connected to audio (StereoPannerNode in all engines)
 - [x] OSSIAN SPACE reverb connected to all audio engines (synth, fm6op, drums)

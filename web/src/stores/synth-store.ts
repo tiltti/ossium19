@@ -3,6 +3,7 @@ import { audioEngine, SynthParams, defaultParams, Waveform, FilterSlope, EffectP
 import { Preset, factoryPresets, getPresetsByCategory } from '../audio/presets';
 import { useFxStore } from './fx-store';
 import { useSpaceFxStore } from './space-fx-store';
+import { useMidiStore } from './midi-store';
 
 interface SynthState {
   isInitialized: boolean;
@@ -67,7 +68,7 @@ interface SynthState {
   getActiveVoiceCount: () => number;
 }
 
-export const useSynthStore = create<SynthState>((set) => ({
+export const useSynthStore = create<SynthState>((set, get) => ({
   isInitialized: false,
   isPlaying: false,
   params: { ...defaultParams },
@@ -86,6 +87,13 @@ export const useSynthStore = create<SynthState>((set) => ({
     // Subscribe to OSSIAN SPACE reverb store changes
     useSpaceFxStore.getState().subscribeToChanges((spaceParams) => {
       audioEngine.setSpaceReverbParams(spaceParams);
+    });
+    // Register MIDI callbacks
+    useMidiStore.getState().registerCallbacks('synth', {
+      noteOn: (note, velocity) => get().noteOn(note, velocity),
+      noteOff: (note) => get().noteOff(note),
+      pitchBend: (value) => get().setPitchBend(value),
+      modWheel: (value) => get().setModWheel(value),
     });
     set({ isInitialized: true });
   },

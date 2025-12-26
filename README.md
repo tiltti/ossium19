@@ -162,9 +162,57 @@ Pre-programmed demo sequences in the header:
 - **Mod Wheel**: Filter cutoff (Synth) / Vibrato (FM)
 - **Interactive Keyboard** with mouse painting and glide
 - **Computer keyboard** mapping (see controls below)
-- **MIDI Input** via Web MIDI API
+- **MIDI Input** via Web MIDI API (see below)
 - **Global BPM** (60-200) syncs drums and arpeggiator
 - **Panic button** stops all audio
+
+### MIDI Input
+
+OSSIAN-19 supports hardware MIDI controllers via the Web MIDI API.
+
+**Browser Support:**
+- Chrome / Edge: Full support
+- Firefox: Requires `about:config` → `dom.webmidi.enabled`
+- Safari: Not supported
+
+**Connecting a MIDI Device:**
+1. Connect your MIDI controller (USB or via interface)
+2. The **MIDI** indicator in the header shows connection status
+3. Green LED = device connected and receiving data
+4. Click **S/F/D** buttons to route MIDI to Synth, FM, or Drums
+
+**Supported MIDI Messages:**
+
+| Message | Function |
+|---------|----------|
+| Note On/Off | Play notes (with velocity) |
+| Pitch Bend | Real-time pitch wheel |
+| CC 1 (Mod Wheel) | Filter cutoff (Synth) / Vibrato (FM) |
+| CC 64 (Sustain) | Sustain pedal (display only) |
+| CC 120/123 | All Notes Off / All Sound Off |
+
+**Drums MIDI Mapping (GM Standard):**
+
+| Note | Sound |
+|------|-------|
+| 35, 36 | Kick |
+| 38, 40 | Snare |
+| 39 | Clap |
+| 42, 44 | Closed Hi-Hat |
+| 46 | Open Hi-Hat |
+| 41, 43 | Tom Low |
+| 45, 47 | Tom Mid |
+| 48, 50 | Tom Hi |
+| 37 | Rimshot |
+| 56 | Cowbell |
+| 49, 51, 52, 55, 57 | Cymbal |
+
+**Auto-Routing:**
+- MIDI target automatically follows the active tab
+- Switch to SYNTH tab → MIDI routes to Synth
+- Switch to FM tab → MIDI routes to FM
+- Switch to DRUMS tab → MIDI routes to Drums
+- Override with S/F/D buttons in the MIDI indicator
 
 ### File Support
 
@@ -268,7 +316,7 @@ OSSIAN-19 aims to recreate the experience of using professional hardware synthes
 - [x] OSSIAN SPACE reverb
 - [x] Goniometer and pitch tuner displays
 - [x] Drum kit variations (TR-808, TR-909, TR-707, CR-78, LinnDrum)
-- [ ] MIDI CC mapping
+- [x] MIDI input with velocity, pitch bend, and mod wheel
 - [ ] Patch export/import
 - [ ] AudioWorklet migration
 
