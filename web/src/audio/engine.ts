@@ -140,11 +140,15 @@ export class AudioEngine {
     // Load the worklet module
     await this.context.audioWorklet.addModule('/synth-worklet.js');
 
-    // Create the worklet node
+    // Create the worklet node with small buffers for low latency
     this.workletNode = new AudioWorkletNode(this.context, 'synth-worklet-processor', {
       numberOfInputs: 0,
       numberOfOutputs: 1,
       outputChannelCount: [2],
+      processorOptions: {
+        bufferSize: 256,  // ~6ms per buffer
+        numBuffers: 6,    // ~35ms total headroom
+      },
     });
 
     // Handle messages from worklet

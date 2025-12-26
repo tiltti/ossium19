@@ -23,7 +23,6 @@ class SynthWorkletProcessor extends AudioWorkletProcessor {
     this.currentBuffer = 0;
     this.bufferPosition = 0;
     this.isPlaying = false;
-    this.waitingForInitialBuffers = false;
     this.underruns = 0;
 
     this.port.onmessage = (event) => {
@@ -37,19 +36,12 @@ class SynthWorkletProcessor extends AudioWorkletProcessor {
             this.buffers[index].right.set(new Float32Array(right));
             this.buffers[index].ready = true;
           }
-          // Check if all initial buffers are now ready
-          if (this.waitingForInitialBuffers) {
-            const allReady = this.buffers.every(b => b.ready);
-            if (allReady) {
-              this.waitingForInitialBuffers = false;
-              this.isPlaying = true;
-            }
-          }
           break;
 
         case 'start':
-          // Request all buffers first, wait for them before playing
-          this.waitingForInitialBuffers = true;
+          // Start playing immediately - request buffers and begin
+          // First buffers may cause brief silence but lower latency
+          this.isPlaying = true;
           for (let i = 0; i < this.numBuffers; i++) {
             this.requestBuffer(i);
           }

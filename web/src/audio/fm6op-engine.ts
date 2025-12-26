@@ -162,15 +162,14 @@ export class Fm6OpEngine {
     // Load the worklet module
     await this.context.audioWorklet.addModule('/synth-worklet.js');
 
-    // FM synth needs larger buffers due to higher CPU load
-    // Using 2048 samples x 6 buffers = ~278ms of buffer headroom at 44.1kHz
+    // FM synth needs slightly larger buffers due to higher CPU load
     this.workletNode = new AudioWorkletNode(this.context, 'synth-worklet-processor', {
       numberOfInputs: 0,
       numberOfOutputs: 1,
       outputChannelCount: [2],
       processorOptions: {
-        bufferSize: 2048,
-        numBuffers: 6,
+        bufferSize: 512,  // ~12ms per buffer
+        numBuffers: 6,    // ~70ms total headroom
       },
     });
 
