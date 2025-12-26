@@ -948,6 +948,9 @@ function AboutSection() {
         <div style={{ color: '#aaa', fontSize: 12, lineHeight: 1.5, marginBottom: 8 }}>
           Digital synthesizer with subtractive and FM synthesis
         </div>
+        <div style={{ color: '#64c8ff', fontSize: 10, fontFamily: 'monospace', marginBottom: 8 }}>
+          Rust + WebAssembly + Web Audio API (AudioWorklet)
+        </div>
         <div style={{ color: '#666', fontSize: 10, fontFamily: 'monospace' }}>
           License: MIT
         </div>

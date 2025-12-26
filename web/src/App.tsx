@@ -19,6 +19,7 @@ import { SevenSegmentDisplay } from './components/LcdScreen';
 import { GlobalVisualizer } from './components/GlobalVisualizer';
 import { WoodPanel } from './components/WoodPanel';
 import { THEMES, ThemeName } from './theme';
+import { VERSION } from './version';
 
 // App modes - tab-based navigation
 type AppMode = 'synth' | 'fm' | 'drums' | 'mixer' | 'fx' | 'settings';
@@ -421,7 +422,7 @@ export function App() {
           borderTop: `1px solid ${theme.border}`,
         }}
       >
-        Rust + WebAssembly + Web Audio API
+        v{VERSION}
       </footer>
     </div>
   );

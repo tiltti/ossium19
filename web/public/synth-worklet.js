@@ -1,8 +1,8 @@
 // AudioWorklet Processor for OSSIAN-19 Synthesizers
 // Ring buffer pattern with message passing for WASM integration
 
-const BUFFER_SIZE = 2048;
-const NUM_BUFFERS = 3;
+const BUFFER_SIZE = 1024;
+const NUM_BUFFERS = 4;
 
 class SynthWorkletProcessor extends AudioWorkletProcessor {
   constructor() {
@@ -20,6 +20,7 @@ class SynthWorkletProcessor extends AudioWorkletProcessor {
     this.currentBuffer = 0;
     this.bufferPosition = 0;
     this.isPlaying = false;
+    this.waitingForInitialBuffers = false;
     this.underruns = 0;
 
     this.port.onmessage = (event) => {
@@ -33,10 +34,19 @@ class SynthWorkletProcessor extends AudioWorkletProcessor {
             this.buffers[index].right.set(new Float32Array(right));
             this.buffers[index].ready = true;
           }
+          // Check if all initial buffers are now ready
+          if (this.waitingForInitialBuffers) {
+            const allReady = this.buffers.every(b => b.ready);
+            if (allReady) {
+              this.waitingForInitialBuffers = false;
+              this.isPlaying = true;
+            }
+          }
           break;
 
         case 'start':
-          this.isPlaying = true;
+          // Request all buffers first, wait for them before playing
+          this.waitingForInitialBuffers = true;
           for (let i = 0; i < NUM_BUFFERS; i++) {
             this.requestBuffer(i);
           }
