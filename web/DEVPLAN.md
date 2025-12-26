@@ -231,3 +231,44 @@ interface Session {
 - [x] Master mute button in mixer
 
 ## COMPLETED!
+
+---
+
+## Technical Notes
+
+### AudioWorklet Migration (December 2025)
+
+**Goal:** Replace deprecated `ScriptProcessorNode` with modern `AudioWorklet` API for better audio performance.
+
+**Problem with ScriptProcessorNode:**
+- Deprecated by Web Audio API spec
+- Runs on the main thread, causing UI jank during heavy processing
+- Synchronous processing model causes audio glitches under load
+- Will eventually be removed from browsers
+
+**Solution:**
+- Created `public/synth-worklet.js` - a ring buffer AudioWorklet processor
+- Updated `engine.ts` and `fm6op-engine.ts` to use AudioWorkletNode with fallback to ScriptProcessorNode for older browsers
+
+**Architecture:**
+```
+WASM Synth (main thread) → fills buffers → MessagePort → AudioWorklet (audio thread)
+                                                            ↓
+                                                      Ring Buffer (3x 2048 samples)
+                                                            ↓
+                                                      Audio Output
+```
+
+**Key Points:**
+- WASM synth still runs on main thread (WASM can't run in worklet context)
+- Triple buffering prevents underruns
+- Uses transferable ArrayBuffers for efficient memory passing
+- Graceful fallback to ScriptProcessorNode if AudioWorklet unavailable
+- panic() clears worklet buffers for immediate silence
+
+**Files:**
+- `public/synth-worklet.js` - AudioWorklet processor (shared by all synth engines)
+- `src/audio/engine.ts` - Subtractive synth with AudioWorklet support
+- `src/audio/fm6op-engine.ts` - FM synth with AudioWorklet support
+
+**DO NOT revert to ScriptProcessorNode** - it is deprecated and will be removed from browsers.

@@ -66,12 +66,14 @@ export const defaultParams: SynthParams = {
 export class AudioEngine {
   private context: AudioContext | null = null;
   private synth: Ossian19Synth | null = null;
-  private scriptNode: ScriptProcessorNode | null = null;
+  private workletNode: AudioWorkletNode | null = null;
+  private scriptNode: ScriptProcessorNode | null = null; // Fallback
   private analyser: AnalyserNode | null = null;
   private effectsChain: EffectsChain | null = null;
   private spaceReverb: SpaceReverb | null = null;
   private panNode: StereoPannerNode | null = null;
   private isInitialized = false;
+  private useWorklet = false;
   private params: SynthParams = { ...defaultParams };
   private effectParams: EffectParams = { ...defaultEffectParams };
 
@@ -106,9 +108,98 @@ export class AudioEngine {
     // Create OSSIAN SPACE reverb
     this.spaceReverb = new SpaceReverb(this.context);
 
-    // Use ScriptProcessorNode for audio processing
-    // (AudioWorklet would be better but requires more setup)
-    // Larger buffer = less glitches, but more latency
+    // Create pan node
+    this.panNode = this.context.createStereoPanner();
+
+    // Try to use AudioWorklet, fall back to ScriptProcessorNode
+    try {
+      await this.initAudioWorklet();
+      this.useWorklet = true;
+    } catch (e) {
+      console.warn('AudioWorklet not available, using ScriptProcessorNode fallback:', e);
+      this.initScriptProcessor();
+      this.useWorklet = false;
+    }
+
+    // Route to effects chain
+    const sourceNode = this.useWorklet ? this.workletNode : this.scriptNode;
+    if (sourceNode) {
+      sourceNode.connect(this.effectsChain.getInput());
+    }
+    this.effectsChain.getOutput().connect(this.spaceReverb.getInput());
+    this.spaceReverb.getOutput().connect(this.analyser);
+    this.analyser.connect(this.panNode);
+    this.panNode.connect(this.context.destination);
+
+    this.isInitialized = true;
+  }
+
+  private async initAudioWorklet(): Promise<void> {
+    if (!this.context) throw new Error('No AudioContext');
+
+    // Load the worklet module
+    await this.context.audioWorklet.addModule('/synth-worklet.js');
+
+    // Create the worklet node
+    this.workletNode = new AudioWorkletNode(this.context, 'synth-worklet-processor', {
+      numberOfInputs: 0,
+      numberOfOutputs: 1,
+      outputChannelCount: [2],
+    });
+
+    // Handle messages from worklet
+    this.workletNode.port.onmessage = (event) => {
+      const { type, data } = event.data;
+
+      switch (type) {
+        case 'ready':
+          // Worklet is ready, start audio generation
+          this.workletNode?.port.postMessage({ type: 'start' });
+          break;
+
+        case 'requestBuffer':
+          // Worklet needs a new buffer
+          this.fillBuffer(data.index, data.size);
+          break;
+
+        case 'underrun':
+          // Buffer underrun occurred
+          if (data.count === 1) {
+            console.warn('Audio buffer underrun');
+          }
+          break;
+      }
+    };
+  }
+
+  private fillBuffer(index: number, size: number): void {
+    if (!this.synth || !this.workletNode) return;
+
+    // Create buffers for WASM to fill
+    const left = new Float32Array(size);
+    const right = new Float32Array(size);
+
+    // Generate audio with WASM
+    this.synth.processStereo(left, right);
+
+    // Send filled buffer back to worklet (transfer ownership for performance)
+    this.workletNode.port.postMessage(
+      {
+        type: 'buffer',
+        data: {
+          index,
+          left: left.buffer,
+          right: right.buffer,
+        },
+      },
+      [left.buffer, right.buffer]
+    );
+  }
+
+  private initScriptProcessor(): void {
+    if (!this.context) return;
+
+    // Fallback: Use deprecated ScriptProcessorNode
     const bufferSize = 1024;
     this.scriptNode = this.context.createScriptProcessor(bufferSize, 0, 2);
 
@@ -120,18 +211,6 @@ export class AudioEngine {
 
       this.synth.processStereo(left, right);
     };
-
-    // Create pan node
-    this.panNode = this.context.createStereoPanner();
-
-    // Route: ScriptNode -> Effects -> SpaceReverb -> Analyser -> Pan -> Destination
-    this.scriptNode.connect(this.effectsChain.getInput());
-    this.effectsChain.getOutput().connect(this.spaceReverb.getInput());
-    this.spaceReverb.getOutput().connect(this.analyser);
-    this.analyser.connect(this.panNode);
-    this.panNode.connect(this.context.destination);
-
-    this.isInitialized = true;
   }
 
   private applyAllParams(): void {
@@ -201,6 +280,10 @@ export class AudioEngine {
   panic(): void {
     try {
       this.synth?.panic();
+      // Also notify worklet to clear buffers immediately
+      if (this.useWorklet && this.workletNode) {
+        this.workletNode.port.postMessage({ type: 'panic' });
+      }
     } catch (e) {
       console.warn('panic error:', e);
     }
@@ -343,6 +426,12 @@ export class AudioEngine {
 
   dispose(): void {
     this.panic();
+
+    if (this.workletNode) {
+      this.workletNode.port.postMessage({ type: 'stop' });
+      this.workletNode.disconnect();
+      this.workletNode = null;
+    }
 
     if (this.scriptNode) {
       this.scriptNode.disconnect();

@@ -10,19 +10,6 @@ Convert OSSIAN-19 to native AU plugin using nih-plug:
 - [ ] Build AU/VST3/CLAP bundle
 - [ ] Test in Logic Pro
 
-## Known Issues
-
-### Deprecated ScriptProcessorNode
-- Used in `fm6op-engine.ts` and `engine.ts`
-- Should be migrated to AudioWorklet for better performance
-- **Fix:** Refactor to use AudioWorkletNode with custom processor
-
-### Unused fm4op Code
-- fm4op (4-operator FM) has been replaced by fm6op (6-operator)
-- Fm4OpPanel is not imported anywhere - entire fm4op codebase is dead code
-- Files to remove: fm4op-engine.ts, fm4op-store.ts, fm4op-presets.ts, fm4op-types.ts, Fm4OpPanel.tsx
-- **Fix:** Delete all fm4op files if confirmed unused
-
 ## Needs Testing
 
 - [ ] **MIDI Input** - Web MIDI API integration (velocity, pitch bend, mod wheel, GM drums)
@@ -34,6 +21,8 @@ Convert OSSIAN-19 to native AU plugin using nih-plug:
 
 ## Completed
 
+- [x] AudioWorklet migration (engine.ts, fm6op-engine.ts) - replaced deprecated ScriptProcessorNode
+- [x] fm4op dead code removal - replaced by 6-operator FM (fm6op)
 - [x] MIDI input implementation (untested with hardware)
 - [x] Mod wheel / pitch bender UI redesign with LED indicators
 - [x] fm4op debug logging cleaned up
