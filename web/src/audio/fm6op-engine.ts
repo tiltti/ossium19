@@ -93,13 +93,11 @@ export class Fm6OpEngine {
   private context: AudioContext | null = null;
   private synth: Ossian19Fm6Op | null = null;
   private workletNode: AudioWorkletNode | null = null;
-  private scriptNode: ScriptProcessorNode | null = null;
   private analyser: AnalyserNode | null = null;
   private effectsChain: EffectsChain | null = null;
   private spaceReverb: SpaceReverb | null = null;
   private panNode: StereoPannerNode | null = null;
   private isInitialized = false;
-  private useWorklet = false;
   private params: Fm6OpParams = JSON.parse(JSON.stringify(defaultFm6OpParams));
   private effectParams: EffectParams = { ...defaultEffectParams };
 
@@ -133,20 +131,12 @@ export class Fm6OpEngine {
     // Create pan node
     this.panNode = this.context.createStereoPanner();
 
-    // Try to use AudioWorklet with larger buffers for FM (more CPU-intensive)
-    try {
-      await this.initAudioWorklet();
-      this.useWorklet = true;
-    } catch (e) {
-      console.warn('AudioWorklet not available, using ScriptProcessorNode fallback:', e);
-      this.initScriptProcessor();
-      this.useWorklet = false;
-    }
+    // Initialize AudioWorklet for FM synthesis
+    await this.initAudioWorklet();
 
     // Route to effects chain
-    const sourceNode = this.useWorklet ? this.workletNode : this.scriptNode;
-    if (sourceNode) {
-      sourceNode.connect(this.effectsChain.getInput());
+    if (this.workletNode) {
+      this.workletNode.connect(this.effectsChain.getInput());
     }
     this.effectsChain.getOutput().connect(this.spaceReverb.getInput());
     this.spaceReverb.getOutput().connect(this.analyser);
@@ -159,8 +149,8 @@ export class Fm6OpEngine {
   private async initAudioWorklet(): Promise<void> {
     if (!this.context) throw new Error('No AudioContext');
 
-    // Load the worklet module
-    await this.context.audioWorklet.addModule('/synth-worklet.js');
+    // Load the worklet module (with cache-busting for separate AudioContext)
+    await this.context.audioWorklet.addModule('/synth-worklet.js?engine=fm6op');
 
     // FM synth needs slightly larger buffers due to higher CPU load
     this.workletNode = new AudioWorkletNode(this.context, 'synth-worklet-processor', {
@@ -216,22 +206,6 @@ export class Fm6OpEngine {
     );
   }
 
-  private initScriptProcessor(): void {
-    if (!this.context) return;
-
-    const bufferSize = 2048;
-    this.scriptNode = this.context.createScriptProcessor(bufferSize, 0, 2);
-
-    this.scriptNode.onaudioprocess = (event) => {
-      if (!this.synth) return;
-
-      const left = event.outputBuffer.getChannelData(0);
-      const right = event.outputBuffer.getChannelData(1);
-
-      this.synth.processStereo(left, right);
-    };
-  }
-
   private applyAllParams(): void {
     if (!this.synth) return;
 
@@ -281,7 +255,7 @@ export class Fm6OpEngine {
 
   panic(): void {
     this.synth?.panic();
-    if (this.useWorklet && this.workletNode) {
+    if (this.workletNode) {
       this.workletNode.port.postMessage({ type: 'panic' });
     }
   }
@@ -456,11 +430,6 @@ export class Fm6OpEngine {
       this.workletNode.port.postMessage({ type: 'stop' });
       this.workletNode.disconnect();
       this.workletNode = null;
-    }
-
-    if (this.scriptNode) {
-      this.scriptNode.disconnect();
-      this.scriptNode = null;
     }
 
     if (this.effectsChain) {
