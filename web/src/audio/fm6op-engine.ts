@@ -93,7 +93,7 @@ export class Fm6OpEngine {
   private context: AudioContext | null = null;
   private synth: Ossian19Fm6Op | null = null;
   private workletNode: AudioWorkletNode | null = null;
-  private scriptNode: ScriptProcessorNode | null = null; // Fallback
+  private scriptNode: ScriptProcessorNode | null = null;
   private analyser: AnalyserNode | null = null;
   private effectsChain: EffectsChain | null = null;
   private spaceReverb: SpaceReverb | null = null;
@@ -133,7 +133,7 @@ export class Fm6OpEngine {
     // Create pan node
     this.panNode = this.context.createStereoPanner();
 
-    // Try to use AudioWorklet, fall back to ScriptProcessorNode
+    // Try to use AudioWorklet with larger buffers for FM (more CPU-intensive)
     try {
       await this.initAudioWorklet();
       this.useWorklet = true;
@@ -159,14 +159,19 @@ export class Fm6OpEngine {
   private async initAudioWorklet(): Promise<void> {
     if (!this.context) throw new Error('No AudioContext');
 
-    // Load the worklet module (same as subtractive synth)
+    // Load the worklet module
     await this.context.audioWorklet.addModule('/synth-worklet.js');
 
-    // Create the worklet node
+    // FM synth needs larger buffers due to higher CPU load
+    // Using 2048 samples x 6 buffers = ~278ms of buffer headroom at 44.1kHz
     this.workletNode = new AudioWorkletNode(this.context, 'synth-worklet-processor', {
       numberOfInputs: 0,
       numberOfOutputs: 1,
       outputChannelCount: [2],
+      processorOptions: {
+        bufferSize: 2048,
+        numBuffers: 6,
+      },
     });
 
     // Handle messages from worklet
@@ -215,7 +220,7 @@ export class Fm6OpEngine {
   private initScriptProcessor(): void {
     if (!this.context) return;
 
-    const bufferSize = 1024;
+    const bufferSize = 2048;
     this.scriptNode = this.context.createScriptProcessor(bufferSize, 0, 2);
 
     this.scriptNode.onaudioprocess = (event) => {

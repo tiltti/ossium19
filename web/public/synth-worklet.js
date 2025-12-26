@@ -1,18 +1,21 @@
 // AudioWorklet Processor for OSSIAN-19 Synthesizers
 // Ring buffer pattern with message passing for WASM integration
 
-const BUFFER_SIZE = 1024;
-const NUM_BUFFERS = 4;
-
 class SynthWorkletProcessor extends AudioWorkletProcessor {
-  constructor() {
+  constructor(options) {
     super();
 
+    // Configurable buffer sizes via processorOptions
+    // FM synth needs larger buffers due to higher CPU load
+    const processorOptions = options.processorOptions || {};
+    this.bufferSize = processorOptions.bufferSize || 1024;
+    this.numBuffers = processorOptions.numBuffers || 4;
+
     this.buffers = [];
-    for (let i = 0; i < NUM_BUFFERS; i++) {
+    for (let i = 0; i < this.numBuffers; i++) {
       this.buffers.push({
-        left: new Float32Array(BUFFER_SIZE),
-        right: new Float32Array(BUFFER_SIZE),
+        left: new Float32Array(this.bufferSize),
+        right: new Float32Array(this.bufferSize),
         ready: false,
       });
     }
@@ -29,7 +32,7 @@ class SynthWorkletProcessor extends AudioWorkletProcessor {
       switch (type) {
         case 'buffer':
           const { index, left, right } = data;
-          if (index >= 0 && index < NUM_BUFFERS) {
+          if (index >= 0 && index < this.numBuffers) {
             this.buffers[index].left.set(new Float32Array(left));
             this.buffers[index].right.set(new Float32Array(right));
             this.buffers[index].ready = true;
@@ -47,7 +50,7 @@ class SynthWorkletProcessor extends AudioWorkletProcessor {
         case 'start':
           // Request all buffers first, wait for them before playing
           this.waitingForInitialBuffers = true;
-          for (let i = 0; i < NUM_BUFFERS; i++) {
+          for (let i = 0; i < this.numBuffers; i++) {
             this.requestBuffer(i);
           }
           break;
@@ -81,7 +84,7 @@ class SynthWorkletProcessor extends AudioWorkletProcessor {
     this.buffers[index].ready = false;
     this.port.postMessage({
       type: 'requestBuffer',
-      data: { index, size: BUFFER_SIZE },
+      data: { index, size: this.bufferSize },
     });
   }
 
@@ -120,7 +123,7 @@ class SynthWorkletProcessor extends AudioWorkletProcessor {
         break;
       }
 
-      const framesAvailable = BUFFER_SIZE - this.bufferPosition;
+      const framesAvailable = this.bufferSize - this.bufferPosition;
       const framesToCopy = Math.min(framesAvailable, frameCount - framesWritten);
 
       for (let i = 0; i < framesToCopy; i++) {
@@ -131,9 +134,9 @@ class SynthWorkletProcessor extends AudioWorkletProcessor {
       this.bufferPosition += framesToCopy;
       framesWritten += framesToCopy;
 
-      if (this.bufferPosition >= BUFFER_SIZE) {
+      if (this.bufferPosition >= this.bufferSize) {
         this.requestBuffer(this.currentBuffer);
-        this.currentBuffer = (this.currentBuffer + 1) % NUM_BUFFERS;
+        this.currentBuffer = (this.currentBuffer + 1) % this.numBuffers;
         this.bufferPosition = 0;
       }
     }
