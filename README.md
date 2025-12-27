@@ -1,6 +1,6 @@
 # OSSIAN-19
 
-A professional hybrid software synthesizer workstation combining classic subtractive synthesis, DX7-style 6-operator FM synthesis, a TR-style drum machine, and studio-quality effects - all built with Rust and WebAssembly.
+A professional hybrid software synthesizer workstation combining classic subtractive synthesis, 6-operator FM synthesis, a TR-style drum machine, and studio-quality effects - all built with Rust and WebAssembly.
 
 **[Try it live](https://tiltti.github.io/ossium19/)**
 
@@ -40,7 +40,7 @@ OSSIAN-19 is a complete browser-based music production environment featuring:
 - Full ADSR envelopes for amp and filter
 
 #### 6-Operator FM Synthesizer (FM tab)
-- All 32 DX7 algorithms with accurate modulation routing
+- All 32 classic FM algorithms with accurate modulation routing
 - Visual algorithm display with interactive selection (one-row 32-button selector)
 - Per-operator ADSR envelopes with velocity sensitivity
 - Operator feedback, ratio, and detuning
@@ -339,9 +339,9 @@ Full-featured subtractive synthesizer with:
 
 ### OSSIAN-19 FM (6-Operator FM Synthesizer)
 
-DX7-style 6-operator FM synthesizer with:
+Classic 6-operator FM synthesizer with:
 
-**Algorithm:** 32 DX7 algorithms
+**Algorithm:** 32 classic FM algorithms
 
 **Per Operator (OP1-OP6):**
 - Ratio, Level, Detune
@@ -374,13 +374,43 @@ xattr -cr ~/Library/Audio/Plug-Ins/CLAP/ossian19-*
 - **Framework:** nih-plug (pure Rust)
 - **Formats:** VST3, CLAP
 - **GUI:** egui with scrollable interface
-- **Note:** Logic Pro requires AU format (not supported yet - see JUCE roadmap)
+
+## AU Plugins (Logic Pro / Reaper)
+
+OSSIAN-19 is also available as Audio Unit (AU) plugins for Logic Pro and other AU-compatible hosts.
+
+### Building AU Plugins
+
+```bash
+# 1. Build Rust FFI library
+cargo build --package ossian19-ffi --release
+
+# 2. Build JUCE AU plugins
+cd juce-plugins/build
+cmake --build . --config Release
+
+# Quick rebuild with cache clearing
+./rebuild-au.sh
+```
+
+Plugins are installed to `~/Library/Audio/Plug-Ins/Components/`:
+- `OSSIAN-19 Sub.component`
+- `OSSIAN-19 FM.component`
+
+### AU Plugin Requirements
+
+- **Framework:** JUCE 8 (C++)
+- **Format:** AU (Audio Unit)
+- **DSP:** Rust via C FFI (ossian19-ffi crate)
+- **Hosts:** Logic Pro, Reaper (under AUi - instruments)
+
+See [docs/AU-PLUGINS.md](docs/AU-PLUGINS.md) for detailed architecture documentation.
 
 ## Roadmap
 
-- [x] 6-operator FM with 32 DX7 algorithms
+- [x] 6-operator FM with 32 classic algorithms
 - [x] Filter slope selector (6/12/24 dB/oct)
-- [x] Visual DX7 algorithm display
+- [x] Visual FM algorithm display
 - [x] Arpeggiator with 20 presets
 - [x] MIDI file player
 - [x] Drum machine with accent patterns
@@ -390,7 +420,7 @@ xattr -cr ~/Library/Audio/Plug-Ins/CLAP/ossian19-*
 - [x] Drum kit variations (TR-808, TR-909, TR-707, CR-78, LinnDrum)
 - [x] MIDI input with velocity, pitch bend, and mod wheel
 - [x] VST3/CLAP plugins (nih-plug)
-- [ ] JUCE version (AU/AAX support for Logic Pro)
+- [x] AU plugins for Logic Pro (JUCE + Rust FFI)
 - [ ] Patch export/import
 - [ ] AudioWorklet migration
 
