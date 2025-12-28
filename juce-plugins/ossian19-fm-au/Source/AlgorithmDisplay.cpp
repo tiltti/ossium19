@@ -85,12 +85,14 @@ std::array<AlgorithmDisplay::OpPosition, 6> AlgorithmDisplay::calculateLayout(
         std::sort(ops.begin(), ops.end());
     }
 
-    // Calculate positions
-    float paddingX = 20.0f;
-    float paddingTop = 10.0f;
-    float paddingBottom = 30.0f;  // For output line
+    // Calculate positions - matching web version exactly
+    float paddingX = 30.0f;
+    float paddingTop = 40.0f;   // For title
+    float paddingBottom = 25.0f; // For output line only
     float availableHeight = height - paddingTop - paddingBottom;
-    float availableWidth = width - paddingX * 2;
+    float availableWidth = width - paddingX * 2.0f;
+
+    float minBallSpacing = 38.0f;  // Minimum vertical space between balls
 
     // Check if we need zigzag layout for long single chains
     bool needsZigzag = maxLevel >= 4 && algo.carriers.size() == 1;
@@ -98,7 +100,7 @@ std::array<AlgorithmDisplay::OpPosition, 6> AlgorithmDisplay::calculateLayout(
     if (needsZigzag)
     {
         // Zigzag layout: split into 2 rows
-        int midLevel = (maxLevel + 1) / 2;
+        int midLevel = (maxLevel + 1) / 2;  // Same as Math.ceil(maxLevel / 2)
         float topRowY = paddingTop + availableHeight * 0.25f;
         float bottomRowY = paddingTop + availableHeight * 0.75f;
 
@@ -122,7 +124,7 @@ std::array<AlgorithmDisplay::OpPosition, 6> AlgorithmDisplay::calculateLayout(
 
             if (lvl > midLevel)
             {
-                // Top row
+                // Top row - left to right
                 float spacing = availableWidth / (float)(topRowCount + 1);
                 for (int op : ops)
                 {
@@ -133,7 +135,7 @@ std::array<AlgorithmDisplay::OpPosition, 6> AlgorithmDisplay::calculateLayout(
             }
             else
             {
-                // Bottom row
+                // Bottom row - continue going right
                 float spacing = availableWidth / (float)(bottomRowCount + 1);
                 for (int op : ops)
                 {
@@ -146,9 +148,16 @@ std::array<AlgorithmDisplay::OpPosition, 6> AlgorithmDisplay::calculateLayout(
     }
     else
     {
-        // Standard level-based layout
+        // Standard level-based layout (works well for short chains)
         int numRows = maxLevel + 1;
-        float rowHeight = numRows > 1 ? availableHeight / (float)numRows : availableHeight;
+        float idealRowHeight = availableHeight / (float)numRows;
+        float rowHeight = std::max(idealRowHeight, minBallSpacing);
+
+        // Adjust starting Y if rows would overflow, otherwise center
+        float totalRowsHeight = rowHeight * (float)numRows;
+        float startY = (totalRowsHeight > availableHeight)
+            ? paddingTop
+            : paddingTop + (availableHeight - totalRowsHeight) / 2.0f + rowHeight / 2.0f;
 
         // Position operators
         for (int lvl = 0; lvl <= maxLevel; ++lvl)
@@ -157,7 +166,7 @@ std::array<AlgorithmDisplay::OpPosition, 6> AlgorithmDisplay::calculateLayout(
             if (ops.empty()) continue;
 
             // Y position: higher levels at top, carriers (level 0) at bottom
-            float y = paddingTop + (float)(maxLevel - lvl) * rowHeight + rowHeight / 2.0f;
+            float y = startY + (float)(maxLevel - lvl) * rowHeight;
 
             // X positions: spread evenly across width
             float spacing = availableWidth / (float)(ops.size() + 1);
@@ -341,9 +350,9 @@ void AlgorithmDisplay::paint(juce::Graphics& g)
                bounds.removeFromTop(24.0f),
                juce::Justification::centred);
 
-    // Calculate layout
+    // Calculate layout - no description text, so use more vertical space
     float displayWidth = bounds.getWidth() - 20.0f;
-    float displayHeight = bounds.getHeight() - 40.0f;  // Leave room for description
+    float displayHeight = bounds.getHeight() - 10.0f;
     float offsetX = bounds.getX() + 10.0f;
     float offsetY = bounds.getY();
 
@@ -353,6 +362,9 @@ void AlgorithmDisplay::paint(juce::Graphics& g)
     std::set<int> carrierSet(algo.carriers.begin(), algo.carriers.end());
 
     float radius = 14.0f;
+
+    // Output line position - close to bottom
+    float outputY = offsetY + displayHeight - 18.0f;
 
     // Draw connections first (behind operators)
     for (int fromOp = 0; fromOp < 6; ++fromOp)
@@ -369,15 +381,27 @@ void AlgorithmDisplay::paint(juce::Graphics& g)
     }
 
     // Draw output line
-    g.setColour(juce::Colour(0xff666666));
-    float outputY = offsetY + displayHeight * 0.82f;
-    g.drawLine(offsetX + displayWidth * 0.15f, outputY,
-               offsetX + displayWidth * 0.85f, outputY, 2.0f);
+    g.setColour(juce::Colour(0xff555555));
+    g.drawLine(offsetX + 30.0f, outputY,
+               offsetX + displayWidth - 30.0f, outputY, 3.0f);
 
-    g.setColour(juce::Colour(0xff888888));
+    g.setColour(juce::Colour(0xff666666));
     g.setFont(juce::FontOptions(10.0f));
     g.drawText("OUTPUT", (int)(offsetX + displayWidth * 0.35f), (int)(outputY + 2),
                (int)(displayWidth * 0.3f), 14, juce::Justification::centred);
+
+    // Draw carrier output lines (vertical lines from carriers to output bar)
+    for (int i = 0; i < 6; ++i)
+    {
+        if (carrierSet.find(i) != carrierSet.end())
+        {
+            float x = offsetX + positions[i].x;
+            float y = offsetY + positions[i].y;
+            juce::Colour opColor(OP_COLORS[i]);
+            g.setColour(opColor.withAlpha(0.6f));
+            g.drawLine(x, y + radius + 2.0f, x, outputY - 2.0f, 2.0f);
+        }
+    }
 
     // Draw operators
     for (int i = 0; i < 6; ++i)
@@ -394,11 +418,4 @@ void AlgorithmDisplay::paint(juce::Graphics& g)
             drawFeedback(g, x, y, radius);
         }
     }
-
-    // Draw description text
-    g.setColour(juce::Colour(0xffaaaaaa));
-    g.setFont(juce::FontOptions(11.0f));
-    juce::String desc = buildDescriptionText(algo);
-    g.drawText(desc, bounds.removeFromBottom(20.0f).reduced(5.0f, 0.0f),
-               juce::Justification::centred);
 }

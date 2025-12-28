@@ -73,6 +73,8 @@ target_sources(Ossian19FmAU PRIVATE
     ossian19-fm-au/Source/PluginProcessor.h
     ossian19-fm-au/Source/PluginEditor.cpp
     ossian19-fm-au/Source/PluginEditor.h
+    ossian19-fm-au/Source/AlgorithmDisplay.cpp
+    ossian19-fm-au/Source/AlgorithmDisplay.h
 )
 
 target_include_directories(Ossian19FmAU PRIVATE ${OSSIAN19_FFI_INCLUDE})
