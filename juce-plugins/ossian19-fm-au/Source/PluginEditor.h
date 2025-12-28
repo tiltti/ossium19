@@ -3,6 +3,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "PluginProcessor.h"
+#include "AlgorithmDisplay.h"
 
 //==============================================================================
 class RotaryKnob : public juce::Component
@@ -78,9 +79,15 @@ private:
     static constexpr uint32_t FILTER_COLOR = 0xffff8c42;
     static constexpr uint32_t MASTER_COLOR = 0xffffd700;
 
-    // Algorithm selector
-    std::unique_ptr<juce::Slider> algoSlider;
+    // Algorithm section
+    std::unique_ptr<AlgorithmDisplay> algoDisplay;
+    std::unique_ptr<juce::TextButton> algoPrevButton;
+    std::unique_ptr<juce::TextButton> algoNextButton;
+    std::unique_ptr<juce::Slider> algoSlider;  // Hidden slider for parameter attachment
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> algoAttachment;
+    std::array<std::unique_ptr<juce::TextButton>, 32> algoButtons;
+
+    void updateAlgorithmDisplay();
 
     // Operator panels
     std::unique_ptr<OperatorPanel> opPanels[6];

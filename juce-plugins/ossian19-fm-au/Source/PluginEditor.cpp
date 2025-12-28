@@ -1,4 +1,5 @@
 #include "PluginEditor.h"
+#include "AlgorithmDisplay.cpp"
 
 //==============================================================================
 // RotaryKnob
@@ -20,7 +21,7 @@ RotaryKnob::RotaryKnob(juce::RangedAudioParameter& param,
     label.setText(labelText, juce::dontSendNotification);
     label.setJustificationType(juce::Justification::centred);
     label.setColour(juce::Label::textColourId, juce::Colour(0xffaaaaaa));
-    label.setFont(juce::Font(9.0f));
+    label.setFont(juce::FontOptions(9.0f));
     addAndMakeVisible(label);
 
     attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
@@ -81,7 +82,7 @@ void OperatorPanel::paint(juce::Graphics& g)
 
     // Title
     g.setColour(accentColor);
-    g.setFont(juce::Font(14.0f, juce::Font::bold));
+    g.setFont(juce::FontOptions(14.0f).withStyle("Bold"));
     g.drawText("OP" + juce::String(operatorNum + 1), bounds.removeFromTop(20), juce::Justification::centred);
 }
 
@@ -138,16 +139,59 @@ void Ossian19FmEditor::createControls()
 {
     auto& vts = valueTreeState;
 
-    // Algorithm slider
-    algoSlider = std::make_unique<juce::Slider>(juce::Slider::IncDecButtons, juce::Slider::TextBoxLeft);
+    // Algorithm display
+    algoDisplay = std::make_unique<AlgorithmDisplay>();
+    addAndMakeVisible(algoDisplay.get());
+
+    // Hidden slider for parameter attachment
+    algoSlider = std::make_unique<juce::Slider>();
     algoSlider->setRange(0, 31, 1);
-    algoSlider->setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
-    algoSlider->setColour(juce::Slider::textBoxBackgroundColourId, juce::Colour(0xff303030));
-    algoSlider->setColour(juce::Slider::textBoxOutlineColourId, juce::Colour(0xff505050));
-    addAndMakeVisible(algoSlider.get());
+    algoSlider->setVisible(false);
+    addChildComponent(algoSlider.get());
+
+    algoSlider->onValueChange = [this]() {
+        updateAlgorithmDisplay();
+    };
 
     algoAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         vts, "algorithm", *algoSlider);
+
+    // Prev/Next buttons
+    algoPrevButton = std::make_unique<juce::TextButton>(juce::CharPointer_UTF8("\xe2\x97\x80"));
+    algoPrevButton->setColour(juce::TextButton::buttonColourId, juce::Colour(0xff303030));
+    algoPrevButton->setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    algoPrevButton->onClick = [this]() {
+        int current = (int)algoSlider->getValue();
+        if (current > 0) algoSlider->setValue(current - 1);
+    };
+    addAndMakeVisible(algoPrevButton.get());
+
+    algoNextButton = std::make_unique<juce::TextButton>(juce::CharPointer_UTF8("\xe2\x96\xb6"));
+    algoNextButton->setColour(juce::TextButton::buttonColourId, juce::Colour(0xff303030));
+    algoNextButton->setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    algoNextButton->onClick = [this]() {
+        int current = (int)algoSlider->getValue();
+        if (current < 31) algoSlider->setValue(current + 1);
+    };
+    addAndMakeVisible(algoNextButton.get());
+
+    // Algorithm selector buttons (2 rows of 16)
+    for (int i = 0; i < 32; ++i)
+    {
+        algoButtons[i] = std::make_unique<juce::TextButton>(juce::String(i + 1));
+        algoButtons[i]->setColour(juce::TextButton::buttonColourId, juce::Colour(0xff252525));
+        algoButtons[i]->setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xffffcc00));
+        algoButtons[i]->setColour(juce::TextButton::textColourOffId, juce::Colour(0xff888888));
+        algoButtons[i]->setColour(juce::TextButton::textColourOnId, juce::Colours::black);
+        algoButtons[i]->setClickingTogglesState(false);
+        algoButtons[i]->onClick = [this, i]() {
+            algoSlider->setValue(i);
+        };
+        addAndMakeVisible(algoButtons[i].get());
+    }
+
+    // Initial update
+    updateAlgorithmDisplay();
 
     // Operator panels
     for (int i = 0; i < 6; ++i)
@@ -181,6 +225,18 @@ void Ossian19FmEditor::createControls()
     addAndMakeVisible(masterVol.get());
 }
 
+void Ossian19FmEditor::updateAlgorithmDisplay()
+{
+    int algo = (int)algoSlider->getValue();
+    algoDisplay->setAlgorithm(algo);
+
+    // Update button states
+    for (int i = 0; i < 32; ++i)
+    {
+        algoButtons[i]->setToggleState(i == algo, juce::dontSendNotification);
+    }
+}
+
 void Ossian19FmEditor::paint(juce::Graphics& g)
 {
     // Background gradient
@@ -192,33 +248,50 @@ void Ossian19FmEditor::paint(juce::Graphics& g)
 
     // Title
     g.setColour(juce::Colour(0xffff8c42));
-    g.setFont(juce::Font(24.0f, juce::Font::bold));
+    g.setFont(juce::FontOptions(24.0f).withStyle("Bold"));
     g.drawText("OSSIAN-19 FM", 10, 8, 300, 30, juce::Justification::left);
 
     g.setColour(juce::Colour(0xff666666));
-    g.setFont(juce::Font(12.0f));
+    g.setFont(juce::FontOptions(12.0f));
     g.drawText("6-Operator FM Synthesizer", 10, 32, 200, 16, juce::Justification::left);
 
-    // Algorithm label
-    g.setColour(juce::Colour(0xffcccccc));
-    g.setFont(juce::Font(14.0f, juce::Font::bold));
-    g.drawText("ALGORITHM", 300, 12, 100, 20, juce::Justification::left);
+    // Algorithm section background
+    g.setColour(juce::Colour(0xff1a1a1a));
+    g.fillRoundedRectangle(530.0f, 8.0f, 500.0f, 220.0f, 8.0f);
+    g.setColour(juce::Colour(0xffffcc00).withAlpha(0.5f));
+    g.drawRoundedRectangle(530.0f, 8.0f, 500.0f, 220.0f, 8.0f, 1.5f);
 
-    // Bottom section labels
-    g.setColour(juce::Colour(FILTER_COLOR).withAlpha(0.3f));
-    g.fillRoundedRectangle(10, 520, 280, 90, 6);
+    // "ALGORITHM" label
+    g.setColour(juce::Colour(0xffffcc00));
+    g.setFont(juce::FontOptions(14.0f).withStyle("Bold"));
+    g.drawText("ALGORITHM", 540, 12, 100, 20, juce::Justification::left);
+
+    // Bottom section backgrounds
+    float bottomY = 485.0f;
+
+    g.setColour(juce::Colour(FILTER_COLOR).withAlpha(0.15f));
+    g.fillRoundedRectangle(10.0f, bottomY, 200.0f, 125.0f, 6.0f);
     g.setColour(juce::Colour(FILTER_COLOR));
-    g.drawRoundedRectangle(10, 520, 280, 90, 6, 1);
+    g.drawRoundedRectangle(10.0f, bottomY, 200.0f, 125.0f, 6.0f, 1.0f);
 
-    g.setColour(juce::Colour(0xff88aaff).withAlpha(0.3f));
-    g.fillRoundedRectangle(300, 520, 180, 90, 6);
+    g.setColour(juce::Colour(0xff88aaff).withAlpha(0.15f));
+    g.fillRoundedRectangle(220.0f, bottomY, 180.0f, 125.0f, 6.0f);
     g.setColour(juce::Colour(0xff88aaff));
-    g.drawRoundedRectangle(300, 520, 180, 90, 6, 1);
+    g.drawRoundedRectangle(220.0f, bottomY, 180.0f, 125.0f, 6.0f, 1.0f);
 
-    g.setColour(juce::Colour(MASTER_COLOR).withAlpha(0.3f));
-    g.fillRoundedRectangle(490, 520, 100, 90, 6);
+    g.setColour(juce::Colour(MASTER_COLOR).withAlpha(0.15f));
+    g.fillRoundedRectangle(410.0f, bottomY, 100.0f, 125.0f, 6.0f);
     g.setColour(juce::Colour(MASTER_COLOR));
-    g.drawRoundedRectangle(490, 520, 100, 90, 6, 1);
+    g.drawRoundedRectangle(410.0f, bottomY, 100.0f, 125.0f, 6.0f, 1.0f);
+
+    // Section labels
+    g.setFont(juce::FontOptions(12.0f).withStyle("Bold"));
+    g.setColour(juce::Colour(FILTER_COLOR));
+    g.drawText("FILTER", 20, (int)bottomY + 5, 80, 16, juce::Justification::left);
+    g.setColour(juce::Colour(0xff88aaff));
+    g.drawText("VIBRATO", 230, (int)bottomY + 5, 80, 16, juce::Justification::left);
+    g.setColour(juce::Colour(MASTER_COLOR));
+    g.drawText("MASTER", 420, (int)bottomY + 5, 80, 16, juce::Justification::left);
 }
 
 void Ossian19FmEditor::resized()
@@ -228,10 +301,37 @@ void Ossian19FmEditor::resized()
     const int opPanelH = 210;
     const int gap = 4;
 
-    // Algorithm slider
-    algoSlider->setBounds(400, 10, 100, 30);
+    // Algorithm section (right side, top)
+    const int algoSectionX = 540;
+    const int algoSectionY = 35;
 
-    // Operators - 2 rows of 3
+    // Prev button
+    algoPrevButton->setBounds(algoSectionX, algoSectionY, 35, 140);
+
+    // Algorithm LCD display
+    algoDisplay->setBounds(algoSectionX + 40, algoSectionY, 280, 140);
+
+    // Next button
+    algoNextButton->setBounds(algoSectionX + 325, algoSectionY, 35, 140);
+
+    // Algorithm buttons (2 rows of 16)
+    const int btnW = 28;
+    const int btnH = 22;
+    const int btnGap = 2;
+    int btnX = algoSectionX;
+    int btnY = algoSectionY + 150;
+
+    for (int i = 0; i < 16; ++i)
+    {
+        algoButtons[i]->setBounds(btnX + i * (btnW + btnGap), btnY, btnW, btnH);
+    }
+    btnY += btnH + btnGap;
+    for (int i = 16; i < 32; ++i)
+    {
+        algoButtons[i]->setBounds(btnX + (i - 16) * (btnW + btnGap), btnY, btnW, btnH);
+    }
+
+    // Operators - 2 rows of 3 (left side)
     int x = margin;
     int y = 55;
 
@@ -247,18 +347,19 @@ void Ossian19FmEditor::resized()
     }
 
     // Bottom controls
-    const int knobW = 60;
-    const int knobH = 70;
+    const int knobW = 55;
+    const int knobH = 68;
+    const int bottomY = 505;
 
     // Filter section
-    filterOn->setBounds(20, 525, 80, 20);
-    filterCutoff->setBounds(20, 545, knobW, knobH);
-    filterReso->setBounds(90, 545, knobW, knobH);
+    filterOn->setBounds(20, bottomY, 80, 20);
+    filterCutoff->setBounds(20, bottomY + 25, knobW, knobH);
+    filterReso->setBounds(90, bottomY + 25, knobW, knobH);
 
     // Vibrato section
-    vibDepth->setBounds(310, 540, knobW, knobH);
-    vibRate->setBounds(380, 540, knobW, knobH);
+    vibDepth->setBounds(235, bottomY + 25, knobW, knobH);
+    vibRate->setBounds(305, bottomY + 25, knobW, knobH);
 
     // Master
-    masterVol->setBounds(500, 540, knobW, knobH);
+    masterVol->setBounds(425, bottomY + 25, knobW, knobH);
 }

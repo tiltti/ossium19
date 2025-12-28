@@ -416,8 +416,8 @@ function AlgorithmPanel({ theme }: { theme: Theme }) {
         {/* Visual algorithm diagram */}
         <Dx7AlgorithmDisplay
           algorithm={params.algorithm}
-          width={180}
-          height={110}
+          width={420}
+          height={200}
           color={lcdAlt}
           showNumber={true}
         />
@@ -464,9 +464,6 @@ function AlgorithmPanel({ theme }: { theme: Theme }) {
             {algo.id + 1}
           </button>
         ))}
-      </div>
-      <div style={{ fontSize: 8, color: '#888' }}>
-        {DX7_ALGORITHMS[params.algorithm].desc}
       </div>
     </div>
   );
