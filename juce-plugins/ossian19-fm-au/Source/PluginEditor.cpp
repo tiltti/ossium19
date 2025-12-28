@@ -306,20 +306,20 @@ void Ossian19FmEditor::resized()
     const int algoSectionY = 35;
 
     // Prev button
-    algoPrevButton->setBounds(algoSectionX, algoSectionY, 35, 140);
+    algoPrevButton->setBounds(algoSectionX, algoSectionY + 30, 35, 120);
 
-    // Algorithm LCD display
-    algoDisplay->setBounds(algoSectionX + 40, algoSectionY, 280, 140);
+    // Algorithm LCD display - larger for better visibility
+    algoDisplay->setBounds(algoSectionX + 40, algoSectionY, 380, 180);
 
     // Next button
-    algoNextButton->setBounds(algoSectionX + 325, algoSectionY, 35, 140);
+    algoNextButton->setBounds(algoSectionX + 425, algoSectionY + 30, 35, 120);
 
     // Algorithm buttons (2 rows of 16)
     const int btnW = 28;
     const int btnH = 22;
     const int btnGap = 2;
     int btnX = algoSectionX;
-    int btnY = algoSectionY + 150;
+    int btnY = algoSectionY + 190;  // Below the larger display
 
     for (int i = 0; i < 16; ++i)
     {

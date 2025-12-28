@@ -85,14 +85,14 @@ std::array<AlgorithmDisplay::OpPosition, 6> AlgorithmDisplay::calculateLayout(
         std::sort(ops.begin(), ops.end());
     }
 
-    // Calculate positions - matching web version exactly
-    float paddingX = 30.0f;
-    float paddingTop = 40.0f;   // For title
-    float paddingBottom = 25.0f; // For output line only
+    // Calculate positions - proportional padding for any size
+    float paddingX = width * 0.08f;  // 8% of width
+    float paddingTop = height * 0.15f;   // 15% for title area
+    float paddingBottom = height * 0.12f; // 12% for output line
     float availableHeight = height - paddingTop - paddingBottom;
     float availableWidth = width - paddingX * 2.0f;
 
-    float minBallSpacing = 38.0f;  // Minimum vertical space between balls
+    float minBallSpacing = height * 0.20f;  // 20% of height minimum between balls
 
     // Check if we need zigzag layout for long single chains
     bool needsZigzag = maxLevel >= 4 && algo.carriers.size() == 1;
@@ -350,10 +350,10 @@ void AlgorithmDisplay::paint(juce::Graphics& g)
                bounds.removeFromTop(24.0f),
                juce::Justification::centred);
 
-    // Calculate layout - no description text, so use more vertical space
-    float displayWidth = bounds.getWidth() - 20.0f;
-    float displayHeight = bounds.getHeight() - 10.0f;
-    float offsetX = bounds.getX() + 10.0f;
+    // Calculate layout - use most of the space
+    float displayWidth = bounds.getWidth();
+    float displayHeight = bounds.getHeight();
+    float offsetX = bounds.getX();
     float offsetY = bounds.getY();
 
     auto positions = calculateLayout(algo, displayWidth, displayHeight);
@@ -361,10 +361,12 @@ void AlgorithmDisplay::paint(juce::Graphics& g)
     // Determine carriers
     std::set<int> carrierSet(algo.carriers.begin(), algo.carriers.end());
 
-    float radius = 14.0f;
+    // Proportional radius based on component size
+    float radius = std::min(displayWidth, displayHeight) * 0.08f;
+    radius = std::max(10.0f, std::min(16.0f, radius));  // Clamp between 10-16
 
-    // Output line position - close to bottom
-    float outputY = offsetY + displayHeight - 18.0f;
+    // Output line position - proportional to height
+    float outputY = offsetY + displayHeight * 0.88f;
 
     // Draw connections first (behind operators)
     for (int fromOp = 0; fromOp < 6; ++fromOp)
@@ -381,14 +383,15 @@ void AlgorithmDisplay::paint(juce::Graphics& g)
     }
 
     // Draw output line
+    float lineMargin = displayWidth * 0.08f;
     g.setColour(juce::Colour(0xff555555));
-    g.drawLine(offsetX + 30.0f, outputY,
-               offsetX + displayWidth - 30.0f, outputY, 3.0f);
+    g.drawLine(offsetX + lineMargin, outputY,
+               offsetX + displayWidth - lineMargin, outputY, 2.0f);
 
     g.setColour(juce::Colour(0xff666666));
-    g.setFont(juce::FontOptions(10.0f));
-    g.drawText("OUTPUT", (int)(offsetX + displayWidth * 0.35f), (int)(outputY + 2),
-               (int)(displayWidth * 0.3f), 14, juce::Justification::centred);
+    g.setFont(juce::FontOptions(9.0f));
+    g.drawText("OUTPUT", (int)(offsetX + displayWidth * 0.35f), (int)(outputY + 1),
+               (int)(displayWidth * 0.3f), 12, juce::Justification::centred);
 
     // Draw carrier output lines (vertical lines from carriers to output bar)
     for (int i = 0; i < 6; ++i)
